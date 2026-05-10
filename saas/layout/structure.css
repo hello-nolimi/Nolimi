@@ -16,6 +16,10 @@ body {
 .hidden { display: none !important; }
 .hidden-file { display: none; }
 
+:root {
+    --inspector-content-top-gap: 18px;
+}
+
 /* ==========================================
    PAGE LOGIN
 ========================================== */
@@ -161,7 +165,7 @@ body {
 .panel-gravure-content {
     flex: 1;
     min-width: 0;
-    padding: 15px 21px 15px 15px;
+    padding: var(--inspector-content-top-gap) 21px 15px 15px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -223,7 +227,7 @@ body {
     gap: 10px;
     height: 36px;
     padding: 10px 12px 6px 12px;  /* 10px au-dessus, 6px en dessous pour descendre un peu le bloc */
-    margin: 0 12px 8px 12px;      /* marge standard vers le contenu */
+    margin: var(--inspector-content-top-gap) 12px 8px 12px; /* départ vertical uniforme */
     background-color: #EAEDF2;
     border-radius: 9999px;
     box-sizing: border-box;
@@ -255,7 +259,7 @@ body {
 .panel-content {
     flex: 0 0 auto;               /* hauteur naturelle du contenu */
     min-width: 0;
-    padding: 18px 21px 160px 15px; /* réserve la place pour la barre "Ajouter une section" */
+    padding: var(--inspector-content-top-gap) 21px 160px 15px; /* réserve la place pour la barre "Ajouter une section" */
     overflow: visible;            /* c'est l'inspector qui gère le scroll */
     display: flex;
     flex-direction: column-reverse;
@@ -286,7 +290,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 10px 15px 8px 15px; 
+    margin: 10px 15px 8px 0; 
     padding: 0; 
     flex-shrink: 0;
 }
@@ -337,7 +341,7 @@ body {
 #viewport.workspace-content { 
     display: flex; 
     flex-grow: 1; 
-    margin: 0 15px 15px 15px; 
+    margin: 0 15px 15px 0; 
     overflow: hidden; 
     position: relative;
 }

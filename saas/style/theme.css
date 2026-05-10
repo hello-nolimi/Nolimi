@@ -467,7 +467,7 @@ input[type="range"] { cursor: pointer; }
     font-weight: bold;
     cursor: pointer;
     transition: 0.3s;
-    margin-top: 20px;
+    margin-top: 0;
 }
 
 .btn-add-gravure:hover {
