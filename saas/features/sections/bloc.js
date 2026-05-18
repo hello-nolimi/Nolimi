@@ -12,11 +12,27 @@ var SectionsBloc = (function () {
             : '';
     }
 
+    function buildSectionCardHeader(title, opts) {
+        opts = opts || {};
+        var removeBtn = opts.removable
+            ? '<button type="button" class="btn-remove-section" data-section-index="' + opts.index + '" data-section-mode="' + opts.mode + '" title="Supprimer la section" aria-label="Supprimer la section">&times;</button>'
+            : '';
+        return '<div class="section-card-header">' +
+            '<button type="button" class="accordion main-accordion">' + title + '</button>' +
+            removeBtn +
+            '</div>';
+    }
+
     function buildSectionCard(s, idx) {
         var i = idx + 1;
         var pre = 's' + i + '-';
+        var header = buildSectionCardHeader(i + ' — ' + (s.label || ('Section ' + i)), {
+            removable: !!s.userAdded,
+            index: idx,
+            mode: 'main'
+        });
         return '<div class="setting-card">' +
-            '<button class="accordion main-accordion">' + i + ' — ' + (s.label || ('Section ' + i)) + '</button>' +
+            header +
             '<div class="panel-controls">' +
             '<div class="control-group">' +
             '<div class="label-row"><label>Hauteur (mm)</label><div class="input-wrapper"><input type="number" id="' + pre + 'h" value="' + s.h + '" min="' + s.hMin + '" max="' + s.hMax + '"><span class="unit">mm</span></div></div>' +
@@ -60,8 +76,13 @@ var SectionsBloc = (function () {
     function buildPiqureSectionCard(s, idx) {
         var title = (idx + 1) + ' — ' + s.label;
         var key = s.key;
+        var header = buildSectionCardHeader(title, {
+            removable: !!s.userAdded,
+            index: idx,
+            mode: 'piqure'
+        });
         var html = '<div class="setting-card">' +
-            '<button class="accordion main-accordion">' + title + '</button>' +
+            header +
             '<div class="panel-controls">';
         if (s.hasHeight) {
             html += '<div class="control-group"><div class="label-row"><label>Hauteur (mm)</label><div class="input-wrapper"><input type="number" id="' + key + '-h" value="' + s.h + '" min="' + s.hMin + '" max="' + s.hMax + '"><span class="unit">mm</span></div></div>' +
@@ -89,8 +110,13 @@ var SectionsBloc = (function () {
 
     function buildBagueSectionCard(s, idx) {
         var key = s.key;
+        var header = buildSectionCardHeader((idx + 1) + ' — ' + s.label, {
+            removable: !!s.userAdded,
+            index: idx,
+            mode: 'bague'
+        });
         return '<div class="setting-card">' +
-            '<button class="accordion main-accordion">' + (idx + 1) + ' — ' + s.label + '</button>' +
+            header +
             '<div class="panel-controls">' +
             '<div class="control-group"><div class="label-row"><label>Hauteur (mm)</label><div class="input-wrapper"><input type="number" id="' + key + '-h" value="' + s.h + '" min="' + s.hMin + '" max="' + s.hMax + '"><span class="unit">mm</span></div></div><input type="range" id="' + key + '-h-slider" min="' + s.hMin + '" max="' + s.hMax + '" step="' + s.hStep + '" value="' + s.h + '"></div>' +
             '<div class="control-group"><div class="label-row"><label>Largeur (mm)</label><div class="input-wrapper"><input type="number" id="' + key + '-L" value="' + s.L + '" min="' + s.LMin + '" max="' + s.LMax + '"><span class="unit">mm</span></div></div><input type="range" id="' + key + '-L-slider" min="' + s.LMin + '" max="' + s.LMax + '" step="' + s.step + '" value="' + s.L + '"></div>' +

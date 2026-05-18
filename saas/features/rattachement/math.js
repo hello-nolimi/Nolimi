@@ -1,48 +1,294 @@
 // Calculs géométriques des liaisons du profil 2D.
 var RattachementMath = (function () {
     var K = (typeof GeomKernel !== 'undefined') ? GeomKernel : null;
-    var TOL_DIAG = (typeof RattachementRules !== 'undefined' && RattachementRules.QUARTER_ARC_TOLERANCE_MM) || 0.5;
     var SPLINE_STEPS = (typeof RattachementRules !== 'undefined' && RattachementRules.SPLINE_STEPS) || 48;
     var MIN_SAFE_X = (typeof RattachementRules !== 'undefined' && RattachementRules.MIN_SAFE_X) || 1;
     var DEFAULT_EDGE_TYPE = (typeof RattachementRules !== 'undefined' && RattachementRules.DEFAULT_EDGE_TYPE) || 'ligne';
     var DEFAULT_RHO = (typeof RattachementRules !== 'undefined' && RattachementRules.DEFAULT_RHO) || 0;
 
-    function createQuarterArcIfPossible(P0, P1, tolDiag) {
-        var dx = P1.x - P0.x;
-        var dy = P1.y - P0.y;
-        var adx = Math.abs(dx);
-        var ady = Math.abs(dy);
-        if (Math.abs(adx - ady) > (tolDiag || TOL_DIAG)) return null;
-        var R = (adx + ady) * 0.5;
+    function dist2d(A, B) {
+        var dx = B.x - A.x;
+        var dy = B.y - A.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    var RULES = (typeof RattachementRules !== 'undefined') ? RattachementRules : {};
+    var RAYON_TOL_MM = RULES.QUARTER_ARC_TOLERANCE_MM || 0.5;
+    var RAYON_MIN_ANGLE_DEG = RULES.RAYON_MIN_CORNER_ANGLE_DEG || 25;
+    var RAYON_MAX_ANGLE_DEG = RULES.RAYON_MAX_CORNER_ANGLE_DEG || 155;
+
+    /** T ∈ [A,B] (sur le segment fini, pas sur le prolongement de la droite). */
+    function pointOnSegment(A, B, T, tol) {
+        tol = tol != null ? tol : 1e-4;
+        var abx = B.x - A.x;
+        var aby = B.y - A.y;
+        var ab2 = abx * abx + aby * aby;
+        if (ab2 < 1e-12) return dist2d(A, T) <= tol;
+        var t = ((T.x - A.x) * abx + (T.y - A.y) * aby) / ab2;
+        if (t < -tol || t > 1 + tol) return false;
+        var qx = A.x + t * abx;
+        var qy = A.y + t * aby;
+        return dist2d({ x: qx, y: qy }, T) <= tol;
+    }
+
+    function distPointToLine(P, A, B) {
+        var dx = B.x - A.x;
+        var dy = B.y - A.y;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-9) return dist2d(P, A);
+        return Math.abs(dx * (A.y - P.y) - (A.x - P.x) * dy) / len;
+    }
+
+    /** Les deux segments (droites) admettent-ils un centre à égale distance ? (non parallèles) */
+    function segmentsAllowEqualDistanceCenter(P0, corner, P1) {
+        var leg1 = dist2d(P0, corner);
+        var leg2 = dist2d(corner, P1);
+        if (leg1 < 1e-6 || leg2 < 1e-6) return false;
+        var ux = (P0.x - corner.x) / leg1;
+        var uy = (P0.y - corner.y) / leg1;
+        var vx = (P1.x - corner.x) / leg2;
+        var vy = (P1.y - corner.y) / leg2;
+        var cross = Math.abs(ux * vy - uy * vx);
+        return cross > 1e-5;
+    }
+
+    /** dist(centre, droite₁) = dist(centre, droite₂) = R (droites supports, pas seulement segments). */
+    function centerEquidistantFromLines(fillet, P0, corner, P1, tol) {
+        if (!fillet || !fillet.center) return false;
+        tol = tol != null ? tol : RAYON_TOL_MM;
+        var C = fillet.center;
+        var R = fillet.R;
+        if (!(R > 1e-6)) return false;
+        var d1 = distPointToLine(C, P0, corner);
+        var d2 = distPointToLine(C, corner, P1);
+        return Math.abs(d1 - d2) <= tol && Math.abs(d1 - R) <= tol && Math.abs(d2 - R) <= tol;
+    }
+
+    function isValidRayonFillet(fillet, P0, corner, P1) {
+        if (!fillet || !fillet.center || !fillet.T1 || !fillet.T2) return false;
+        if (!(fillet.R > 1e-6)) return false;
+        if (!centerEquidistantFromLines(fillet, P0, corner, P1)) return false;
+        if (!pointOnSegment(P0, corner, fillet.T1) || !pointOnSegment(corner, P1, fillet.T2)) return false;
+        if (fillet.center.x < MIN_SAFE_X - 1e-6) return false;
+        if (!hasArcSweep(fillet)) return false;
+        return true;
+    }
+
+    function cornerInteriorAngleRad(P0, corner, P1) {
+        var ax = P0.x - corner.x;
+        var ay = P0.y - corner.y;
+        var bx = P1.x - corner.x;
+        var by = P1.y - corner.y;
+        var la = Math.sqrt(ax * ax + ay * ay);
+        var lb = Math.sqrt(bx * bx + by * by);
+        if (la < 1e-6 || lb < 1e-6) return null;
+        var c = Math.max(-1, Math.min(1, (ax * bx + ay * by) / (la * lb)));
+        return Math.acos(c);
+    }
+
+    function cornerAngleIsAllowed(thetaRad) {
+        if (thetaRad == null) return false;
+        var deg = thetaRad * 180 / Math.PI;
+        return deg >= RAYON_MIN_ANGLE_DEG - 1e-6 && deg <= RAYON_MAX_ANGLE_DEG + 1e-6;
+    }
+
+    function filletFromKernel(raw) {
+        if (!raw || !raw.center) return null;
+        return {
+            center: { x: raw.center.x, y: raw.center.y },
+            T1: { x: raw.T1.x, y: raw.T1.y },
+            T2: { x: raw.T2.x, y: raw.T2.y },
+            R: raw.R,
+            startAngle: raw.startAngle,
+            endAngle: raw.endAngle
+        };
+    }
+
+    function radiusForEqualLegs(legLen, thetaRad) {
+        var tanHalf = Math.tan(thetaRad / 2);
+        if (tanHalf < 1e-6) return 0;
+        return (legLen / tanHalf) * 0.99;
+    }
+
+    function buildFilletFromKernel(P0, corner, P1, R) {
+        if (!K || !K.computeFilletTangentPoints || !K.vec2 || R <= 0) return null;
+        var raw = K.computeFilletTangentPoints(
+            K.vec2(P0.x, P0.y),
+            K.vec2(corner.x, corner.y),
+            K.vec2(P1.x, P1.y),
+            R
+        );
+        return filletFromKernel(raw);
+    }
+
+    /** Congé tangent aux deux branches S0–coin et coin–S1 (angle variable, pas seulement 90°). */
+    function buildFilletAtCorner(P0, corner, P1, legLen) {
+        if (!K || legLen < 1e-6) return null;
+        var theta = cornerInteriorAngleRad(P0, corner, P1);
+        if (!cornerAngleIsAllowed(theta)) return null;
+
+        var R = radiusForEqualLegs(legLen, theta);
         if (R < 1e-6) return null;
 
-        var minX = Math.min(P0.x, P1.x), maxX = Math.max(P0.x, P1.x);
-        var minY = Math.min(P0.y, P1.y), maxY = Math.max(P0.y, P1.y);
+        var fillet = buildFilletFromKernel(P0, corner, P1, R);
+        if (fillet && isValidRayonFillet(fillet, P0, corner, P1)) return fillet;
 
-        function buildArcForCenter(C) {
-            var a0 = Math.atan2(P0.y - C.y, P0.x - C.x);
-            var a1 = Math.atan2(P1.y - C.y, P1.x - C.x);
-            var da = a1 - a0;
-            while (da > Math.PI) da -= 2 * Math.PI;
-            while (da < -Math.PI) da += 2 * Math.PI;
-            var end = a0 + da;
-            var amid = (a0 + end) * 0.5;
-            var pmx = C.x + Math.cos(amid) * R;
-            var pmy = C.y + Math.sin(amid) * R;
-            var insideRect = (pmx >= minX - 1e-6 && pmx <= maxX + 1e-6 && pmy >= minY - 1e-6 && pmy <= maxY + 1e-6);
-            if (pmx < -1e-6) return null;
-            return {
-                arc: K.ArcSegment(C.x, C.y, R, a0, end),
-                score: (insideRect ? 0 : 1) + Math.abs(Math.abs(da) - (Math.PI / 2)) * 0.01
-            };
+        fillet = buildFilletFromKernel(P1, corner, P0, R);
+        if (fillet && isValidRayonFillet(fillet, P0, corner, P1)) return fillet;
+
+        return null;
+    }
+
+    /** Les deux perpendiculaires (section → intersection) ont la même longueur. */
+    function perpendicularLegsAreEqual(layout) {
+        if (!layout) return false;
+        return Math.abs(layout.lenFromP0 - layout.lenFromP1) <= RAYON_TOL_MM;
+    }
+
+    function normalize2d(v) {
+        var L = Math.sqrt(v.x * v.x + v.y * v.y);
+        if (L < 1e-9) return null;
+        return { x: v.x / L, y: v.y / L };
+    }
+
+    function perpLeftVec(v) {
+        return { x: -v.y, y: v.x };
+    }
+
+    function orientPerpToward(perp, from, toward) {
+        var tx = toward.x - from.x;
+        var ty = toward.y - from.y;
+        if (perp.x * tx + perp.y * ty < 0) {
+            return { x: -perp.x, y: -perp.y };
         }
+        return perp;
+    }
 
-        var cand1 = buildArcForCenter({ x: P0.x, y: P1.y });
-        var cand2 = buildArcForCenter({ x: P1.x, y: P0.y });
-        if (!cand1 && !cand2) return null;
-        if (cand1 && !cand2) return cand1.arc;
-        if (!cand1 && cand2) return cand2.arc;
-        return (cand1.score <= cand2.score) ? cand1.arc : cand2.arc;
+    function rayRayIntersection(P, d, Q, e) {
+        var det = d.x * e.y - d.y * e.x;
+        if (Math.abs(det) < 1e-9) return null;
+        var dx = Q.x - P.x;
+        var dy = Q.y - P.y;
+        var t = (dx * e.y - dy * e.x) / det;
+        return { x: P.x + t * d.x, y: P.y + t * d.y };
+    }
+
+    /** Coin du L entre deux sections (orientation selon le profil voisin). */
+    function pickTransitionCorner(P0, P1, prevPoint, nextPoint) {
+        var dx = P1.x - P0.x;
+        var dy = P1.y - P0.y;
+        if (Math.abs(dx) < 1e-6 || Math.abs(dy) < 1e-6) return null;
+
+        var cornerHR = { x: P1.x, y: P0.y };
+        var cornerRH = { x: P0.x, y: P1.y };
+
+        if (prevPoint) {
+            var vinX = P0.x - prevPoint.x;
+            var vinY = P0.y - prevPoint.y;
+            if (Math.abs(vinX) >= Math.abs(vinY)) return cornerHR;
+            return cornerRH;
+        }
+        if (nextPoint) {
+            var voutX = nextPoint.x - P1.x;
+            var voutY = nextPoint.y - P1.y;
+            if (Math.abs(voutX) >= Math.abs(voutY)) return cornerRH;
+            return cornerHR;
+        }
+        if (dy >= 0 && dx >= 0) return cornerHR;
+        if (dy >= 0 && dx < 0) return cornerRH;
+        if (dy < 0 && dx >= 0) return cornerHR;
+        return cornerRH;
+    }
+
+    /**
+     * Perpendiculaires imaginaires depuis chaque section, ⟂ à la ligne/courbe du profil
+     * à cette section (prev→S0 et S1→next, ou jambes du rattachement en secours).
+     * Même longueur jusqu'à l'intersection → rayon admissible.
+     * Le congé suit le coin du L (S0–coin–S1).
+     */
+    function getProfileTangentLayout(P0, P1, prevPoint, nextPoint) {
+        var cornerM = pickTransitionCorner(P0, P1, prevPoint, nextPoint);
+        if (!cornerM) return null;
+
+        var leg1Len = dist2d(P0, cornerM);
+        var leg2Len = dist2d(cornerM, P1);
+        if (leg1Len < 1e-6 || leg2Len < 1e-6) return null;
+
+        var d1raw = prevPoint
+            ? { x: P0.x - prevPoint.x, y: P0.y - prevPoint.y }
+            : { x: cornerM.x - P0.x, y: cornerM.y - P0.y };
+        var d2raw = nextPoint
+            ? { x: nextPoint.x - P1.x, y: nextPoint.y - P1.y }
+            : { x: P1.x - cornerM.x, y: P1.y - cornerM.y };
+
+        var d1 = normalize2d(d1raw);
+        var d2 = normalize2d(d2raw);
+        if (!d1 || !d2) return null;
+        if (Math.abs(d1.x * d2.x + d1.y * d2.y) > 0.9999) return null;
+
+        var profileMeet = rayRayIntersection(P0, d1, P1, d2);
+        var perpTarget0 = profileMeet || cornerM;
+        var perpTarget1 = profileMeet || cornerM;
+
+        var perp0 = orientPerpToward(perpLeftVec(d1), P0, perpTarget0);
+        var perp1 = orientPerpToward(perpLeftVec(d2), P1, perpTarget1);
+        var perpMeet = rayRayIntersection(P0, perp0, P1, perp1);
+        if (!perpMeet) return null;
+
+        return {
+            corner: cornerM,
+            lenFromP0: dist2d(P0, perpMeet),
+            lenFromP1: dist2d(P1, perpMeet)
+        };
+    }
+
+    function resolveRayonLayout(P0, P1, prevPoint, nextPoint) {
+        return getProfileTangentLayout(P0, P1, prevPoint, nextPoint);
+    }
+
+    function hasArcSweep(fillet) {
+        var da = fillet.endAngle - fillet.startAngle;
+        while (da > Math.PI) da -= 2 * Math.PI;
+        while (da < -Math.PI) da += 2 * Math.PI;
+        return Math.abs(da) > 1e-4;
+    }
+
+    function tryRayonAtSections(P0, P1, prevPoint, nextPoint) {
+        var layout = resolveRayonLayout(P0, P1, prevPoint, nextPoint);
+        if (!layout || !perpendicularLegsAreEqual(layout)) return null;
+
+        var legLen = layout.lenFromP0;
+        if (legLen < 1e-6) return null;
+
+        var fillet = buildFilletAtCorner(P0, layout.corner, P1, legLen);
+        if (!fillet) return null;
+
+        return { fillet: fillet, corner: layout.corner, legLen: legLen };
+    }
+
+    function appendRayonEntities(entities, P0, P1, fillet) {
+        var T1 = fillet.T1;
+        var T2 = fillet.T2;
+        if (dist2d(P0, T1) > 1e-5) {
+            entities.push(K.LineSegment(P0.x, P0.y, T1.x, T1.y));
+        }
+        entities.push(K.ArcSegment(
+            fillet.center.x, fillet.center.y, fillet.R,
+            fillet.startAngle, fillet.endAngle
+        ));
+        if (dist2d(T2, P1) > 1e-5) {
+            entities.push(K.LineSegment(T2.x, T2.y, P1.x, P1.y));
+        }
+    }
+
+    function computeRayonValidity(P0, P1, prevPoint, nextPoint) {
+        var layout = resolveRayonLayout(P0, P1, prevPoint || null, nextPoint || null);
+        if (!layout || !perpendicularLegsAreEqual(layout)) {
+            return { valid: false, R: null };
+        }
+        var pick = tryRayonAtSections(P0, P1, prevPoint || null, nextPoint || null, null);
+        if (!pick) return { valid: false, R: null };
+        return { valid: true, R: pick.fillet.R };
     }
 
     function buildProfileCurves(profilePoints, data) {
@@ -63,16 +309,21 @@ var RattachementMath = (function () {
             var R = rhos[i] || DEFAULT_RHO;
 
             if (type === 'rayon') {
-                var dxR = P1.x - P0.x;
-                var dyR = P1.y - P0.y;
-                var diff = Math.abs(Math.abs(dxR) - Math.abs(dyR));
-                if (diff < TOL_DIAG) {
-                    var arcQuarter = createQuarterArcIfPossible(P0, P1, TOL_DIAG);
-                    entities.push(arcQuarter || K.LineSegment(P0.x, P0.y, P1.x, P1.y));
-                } else {
-                    entities.push(K.LineSegment(P0.x, P0.y, P1.x, P1.y));
+                var sec0 = { x: points[i].x, y: points[i].y };
+                var sec1 = { x: points[i + 1].x, y: points[i + 1].y };
+                var prevSec = i > 0 ? { x: points[i - 1].x, y: points[i - 1].y } : null;
+                var nextSec = i + 2 < points.length ? { x: points[i + 2].x, y: points[i + 2].y } : null;
+                if (dist2d(lastPoint, sec0) > 1e-5) {
+                    entities.push(K.LineSegment(lastPoint.x, lastPoint.y, sec0.x, sec0.y));
                 }
-                lastPoint = { x: P1.x, y: P1.y };
+                var rayonPick = tryRayonAtSections(sec0, sec1, prevSec, nextSec);
+                var rayonOk = !!rayonPick;
+                if (rayonOk) {
+                    appendRayonEntities(entities, sec0, sec1, rayonPick.fillet);
+                } else {
+                    entities.push(K.LineSegment(sec0.x, sec0.y, sec1.x, sec1.y));
+                }
+                lastPoint = { x: sec1.x, y: sec1.y };
             } else if (type === 'courbeS' && R > 0) {
                 var prevPoint = i > 0 ? { x: points[i - 1].x, y: points[i - 1].y } : null;
                 var nextPoint = i + 2 < points.length ? { x: points[i + 2].x, y: points[i + 2].y } : null;
@@ -223,6 +474,7 @@ var RattachementMath = (function () {
     }
 
     return {
-        buildProfileCurves: buildProfileCurves
+        buildProfileCurves: buildProfileCurves,
+        computeRayonValidity: computeRayonValidity
     };
 })();

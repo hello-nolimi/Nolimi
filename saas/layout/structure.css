@@ -408,6 +408,37 @@ main {
     padding-left: 0;
 }
 
+.section-card-header {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.section-card-header .accordion.main-accordion {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-remove-section {
+    flex-shrink: 0;
+    width: 28px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #777777;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.btn-remove-section:hover {
+    color: #c62828;
+    background-color: rgba(198, 40, 40, 0.08);
+}
+
 .accordion {
     width: 100%;
     text-align: left;

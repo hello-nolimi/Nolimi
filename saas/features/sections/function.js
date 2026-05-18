@@ -102,15 +102,17 @@ var UIInspector = (function () {
     }
 
     function bindEvents() {
-        if (typeof SectionsEvents === 'undefined' || !SectionsEvents.wireAddSectionButton) return;
-        SectionsEvents.wireAddSectionButton({
+        if (typeof SectionsEvents === 'undefined') return;
+        var eventConfig = {
             containerIds: {
                 sections: CONTAINER_SECTIONS,
                 piqure: CONTAINER_PIQURE,
                 bague: CONTAINER_BAGUE
             },
             onRefresh: renderSections
-        });
+        };
+        if (SectionsEvents.wireAddSectionButton) SectionsEvents.wireAddSectionButton(eventConfig);
+        if (SectionsEvents.wireRemoveSectionButtons) SectionsEvents.wireRemoveSectionButtons(eventConfig);
     }
 
     function renderSections() {

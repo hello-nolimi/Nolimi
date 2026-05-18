@@ -84,6 +84,8 @@
                                     <option value="A4_L">A4 Paysage</option>
                                     <option value="A3_P">A3 Portrait</option>
                                     <option value="A3_L">A3 Paysage</option>
+                                    <option value="A2_P">A2 Portrait</option>
+                                    <option value="A2_L">A2 Paysage</option>
                                 </select>
                             </div>
                             <div class="control-group">
@@ -106,23 +108,31 @@
                         </div>
                     </div>
                     <div class="setting-card">
-                        <button class="accordion main-accordion">Information</button>
+                        <button class="accordion main-accordion">Cartouche</button>
                         <div class="panel-controls">
                             <div class="control-group">
-                                <div class="label-row"><label>Projet</label></div>
-                                <input type="text" id="cartouche-title" placeholder="Nom du projet">
+                                <div class="label-row"><label>N° plan</label></div>
+                                <input type="text" id="cartouche-plan-number" placeholder="—">
                             </div>
                             <div class="control-group">
-                                <div class="label-row"><label>Dessinateur</label></div>
-                                <input type="text" id="cartouche-drafter" placeholder="Nom">
+                                <div class="label-row"><label>Date</label></div>
+                                <input type="text" id="cartouche-date" placeholder="—">
                             </div>
                             <div class="control-group">
-                                <div class="label-row"><label>Vérificateur</label></div>
-                                <input type="text" id="cartouche-checker" placeholder="Nom">
+                                <div class="label-row"><label>Dessinateur (DESSI.)</label></div>
+                                <input type="text" id="cartouche-drafter" placeholder="—">
                             </div>
                             <div class="control-group">
-                                <div class="label-row"><label>Contenance</label></div>
-                                <input type="text" id="cartouche-capacity" placeholder="ex. 75 cL">
+                                <div class="label-row"><label>Vérificateur (VERIF.)</label></div>
+                                <input type="text" id="cartouche-checker" placeholder="—">
+                            </div>
+                            <div class="control-group">
+                                <div class="label-row"><label>Titre</label></div>
+                                <input type="text" id="cartouche-title" placeholder="—">
+                            </div>
+                            <div class="control-group">
+                                <div class="label-row"><label>Indice</label></div>
+                                <input type="text" id="cartouche-index" placeholder="—">
                             </div>
                         </div>
                     </div>
@@ -333,6 +343,7 @@
     <script src="shared/topbar/function.js"></script>
     <script src="shared/display/function.js"></script>
     <script src="shared/history/function.js"></script>
+    <script src="layout/ui-controls.js"></script>
     <script src="layout/function.js"></script>
     <script src="store/storage.js"></script>
     <script src="features/export/rules.js"></script>

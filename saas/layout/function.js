@@ -10,6 +10,10 @@ let updateTimer;
 // Les règles de clamp utilisateur sont centralisées dans js/state/validator.js
 
 function setupListeners() {
+    if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) {
+        UIControls.syncAllRangeSliders();
+    }
+
     function getMainSectionCount() {
         var inputs = document.querySelectorAll('input[id^="s"][id$="-h"]');
         var maxIdx = 0;
@@ -231,7 +235,7 @@ function setupListeners() {
     }
     function toggleRhoVisibility() {
         document.querySelectorAll('select[id$="-type"]').forEach(sel => {
-            const card = sel.closest('.setting-card--rattachement');
+            const card = sel.closest('.setting-card--rattachement, .setting-card--liaison');
             if (!card) return;
             const rhoGroup = card.querySelector('.js-rho-group');
             if (!rhoGroup) return;
@@ -460,17 +464,18 @@ function setupListeners() {
     }
 
     function updateRayonAutoValues() {
-        const tolDiag = 0.5; // même tolérance que dans les maths (mm)
-
         MAIN_RATTACHEMENTS.forEach(cfg => {
             const typeSelect = document.getElementById(cfg.id + '-type');
             if (!typeSelect || typeSelect.value !== 'rayon') return;
 
             const p0 = getSectionPointForRayon(cfg.fromSection);
             const p1 = getSectionPointForRayon(cfg.toSection);
-            const dx = p1.x - p0.x;
-            const dy = p1.y - p0.y;
-            const diff = Math.abs(Math.abs(dx) - Math.abs(dy));
+            const pPrev = cfg.fromSection > 1
+                ? getSectionPointForRayon(cfg.fromSection - 1)
+                : null;
+            const pNext = cfg.toSection < getMainSectionCount()
+                ? getSectionPointForRayon(cfg.toSection + 1)
+                : null;
             const card = document.getElementById(cfg.id + '-rho')?.closest('.setting-card');
 
             const inputEl = document.getElementById(cfg.id + '-rho');
@@ -478,15 +483,16 @@ function setupListeners() {
 
             if (!inputEl) return;
 
-            if (diff < tolDiag) {
-                // En mode "rayon" (quart de cercle), le rayon géométrique est |Δx| (= |Δy|)
-                const Rgeo = (Math.abs(dx) + Math.abs(dy)) * 0.5;
-                const val = Math.round(Rgeo * 10) / 10; // arrondi 0.1 mm
+            var info = (typeof RattachementMath !== 'undefined' && RattachementMath.computeRayonValidity)
+                ? RattachementMath.computeRayonValidity(p0, p1, pPrev, pNext)
+                : { valid: false, R: null };
+
+            if (info.valid && info.R != null) {
+                const val = Math.round(info.R * 10) / 10;
                 inputEl.value = val;
                 if (sliderEl) sliderEl.value = val;
                 if (card) card.classList.remove('rayon-impossible');
             } else {
-                // Rayon impossible géométriquement pour la config actuelle.
                 inputEl.value = '';
                 if (sliderEl) sliderEl.value = '';
                 if (card) card.classList.add('rayon-impossible');
@@ -560,10 +566,19 @@ function setupListeners() {
     const mainAccordions = document.querySelectorAll(".accordion.main-accordion");
     const subAccordions = document.querySelectorAll(".accordion.sub-accordion");
 
+    function accordionPanelFor(btn) {
+        var card = btn.closest ? btn.closest('.setting-card') : null;
+        if (card) {
+            var panel = card.querySelector('.panel-controls');
+            if (panel) return panel;
+        }
+        return btn.nextElementSibling;
+    }
+
     function closeMainAccordions() {
         mainAccordions.forEach(btn => {
             btn.classList.remove("active");
-            const panel = btn.nextElementSibling;
+            const panel = accordionPanelFor(btn);
             if (panel && panel.classList.contains("panel-controls")) {
                 panel.style.maxHeight = "0px";
             }
@@ -573,7 +588,7 @@ function setupListeners() {
     function closeSubAccordions() {
         subAccordions.forEach(btn => {
             btn.classList.remove("active");
-            const panel = btn.nextElementSibling;
+            const panel = accordionPanelFor(btn);
             if (panel && panel.classList.contains("panel-controls")) {
                 panel.style.maxHeight = "0px";
             }
@@ -593,7 +608,7 @@ function setupListeners() {
             if (this.id === 'render-mode-title') return;
             var card = this.closest ? this.closest('.setting-card') : null;
             if (card && card.classList.contains('is-disabled')) return;
-            const panel = this.nextElementSibling;
+            const panel = accordionPanelFor(this);
             const isOpen = panel && panel.style.maxHeight && panel.style.maxHeight !== "0px";
             const isMain = this.classList.contains("main-accordion");
             const isSub = this.classList.contains("sub-accordion");
@@ -629,6 +644,9 @@ function setupListeners() {
 
 if (typeof UIInspector !== 'undefined' && UIInspector.renderSections) {
     UIInspector.renderSections();
+}
+if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) {
+    UIControls.syncAllRangeSliders();
 }
 if (typeof RenderFeature !== 'undefined' && RenderFeature.initModeRenduControls) {
     RenderFeature.initModeRenduControls();

@@ -14,6 +14,203 @@ var SectionsEvents = (function () {
         return 'main';
     }
 
+    function getNum(id, fallback) {
+        var el = document.getElementById(id);
+        if (!el) return fallback;
+        var v = parseFloat(el.value);
+        return isFinite(v) ? v : fallback;
+    }
+
+    function syncMainFromDom(state) {
+        var currentCount = 0;
+        var hInputs = document.querySelectorAll('input[id^="s"][id$="-h"]');
+        for (var hi = 0; hi < hInputs.length; hi++) {
+            var m = (hInputs[hi].id || '').match(/^s(\d+)-h$/);
+            if (!m) continue;
+            var k = parseInt(m[1], 10);
+            if (isFinite(k) && k > currentCount) currentCount = k;
+        }
+        if (!currentCount) currentCount = state.sectionsMain.length;
+
+        var newSections = [];
+        for (var k2 = 1; k2 <= currentCount; k2++) {
+            var base = state.sectionsMain[k2 - 1] || { label: 'Section', hMin: 0, hMax: 350, LMin: 10, LMax: 120, step: 0.5, hStep: 0.5 };
+            newSections.push({
+                label: base.label || 'Section',
+                h: getNum('s' + k2 + '-h', base.h || 0),
+                hMin: base.hMin,
+                hMax: base.hMax,
+                L: getNum('s' + k2 + '-L', base.L || 0),
+                P: getNum('s' + k2 + '-P', base.P || 0),
+                LMin: base.LMin,
+                LMax: base.LMax,
+                step: base.step,
+                hStep: base.hStep,
+                userAdded: !!base.userAdded
+            });
+        }
+        state.sectionsMain = newSections;
+
+        var newLiaisons = [];
+        for (var r = 1; r < currentCount; r++) {
+            var rid = 'r' + r + (r + 1);
+            var baseR = state.liaisonsMain[r - 1] || { rho: 10, rhoMin: 0, rhoMax: 400, rhoStep: 0.5 };
+            newLiaisons.push({
+                rho: getNum(rid + '-rho', baseR.rho),
+                rhoMin: baseR.rhoMin,
+                rhoMax: baseR.rhoMax,
+                rhoStep: baseR.rhoStep
+            });
+        }
+        state.liaisonsMain = newLiaisons;
+    }
+
+    function syncPiqureFromDom(state) {
+        var list = [];
+        for (var i = 0; i < state.piqureSections.length; i++) {
+            var base = state.piqureSections[i];
+            var key = base.key;
+            var item = {
+                key: key,
+                label: base.label,
+                hasHeight: base.hasHeight,
+                hMin: base.hMin,
+                hMax: base.hMax,
+                hStep: base.hStep,
+                LMin: base.LMin,
+                LMax: base.LMax,
+                step: base.step,
+                userAdded: !!base.userAdded
+            };
+            if (base.hasHeight) item.h = getNum(key + '-h', base.h);
+            item.L = getNum(key + '-L', base.L);
+            item.P = getNum(key + '-P', base.P);
+            list.push(item);
+        }
+        state.piqureSections = list;
+
+        var liaisons = [];
+        for (var j = 0; j < state.piqureLiaisons.length; j++) {
+            var rhoObj = state.piqureLiaisons[j];
+            liaisons.push({
+                id: rhoObj.id,
+                rho: getNum(rhoObj.id + '-rho', rhoObj.rho),
+                rhoMin: rhoObj.rhoMin,
+                rhoMax: rhoObj.rhoMax,
+                rhoStep: rhoObj.rhoStep
+            });
+        }
+        state.piqureLiaisons = liaisons;
+    }
+
+    function syncBagueFromDom(state) {
+        var list = [];
+        for (var i = 0; i < state.bagueSections.length; i++) {
+            var base = state.bagueSections[i];
+            var key = base.key;
+            list.push({
+                key: key,
+                label: base.label,
+                h: getNum(key + '-h', base.h),
+                hMin: base.hMin,
+                hMax: base.hMax,
+                hStep: base.hStep,
+                L: getNum(key + '-L', base.L),
+                P: getNum(key + '-P', base.P),
+                LMin: base.LMin,
+                LMax: base.LMax,
+                step: base.step,
+                userAdded: !!base.userAdded
+            });
+        }
+        state.bagueSections = list;
+
+        var liaisons = [];
+        for (var j = 0; j < state.bagueLiaisons.length; j++) {
+            var rhoObj = state.bagueLiaisons[j];
+            liaisons.push({
+                id: rhoObj.id,
+                rho: getNum(rhoObj.id + '-rho', rhoObj.rho),
+                rhoMin: rhoObj.rhoMin,
+                rhoMax: rhoObj.rhoMax,
+                rhoStep: rhoObj.rhoStep
+            });
+        }
+        state.bagueLiaisons = liaisons;
+    }
+
+    function mergeLiaisonsAfterRemove(liaisons, index) {
+        if (index > 0 && index < liaisons.length) {
+            var left = liaisons[index - 1];
+            liaisons.splice(index - 1, 2, {
+                rho: left.rho,
+                rhoMin: left.rhoMin,
+                rhoMax: left.rhoMax,
+                rhoStep: left.rhoStep
+            });
+        } else if (index > 0) {
+            liaisons.splice(index - 1, 1);
+        } else if (liaisons.length > 0) {
+            liaisons.splice(0, 1);
+        }
+    }
+
+    function removeSectionAt(mode, index, state) {
+        if (mode === 'bague') {
+            syncBagueFromDom(state);
+            var bSec = state.bagueSections[index];
+            if (!bSec || !bSec.userAdded) return false;
+            state.bagueSections.splice(index, 1);
+            mergeLiaisonsAfterRemove(state.bagueLiaisons, index);
+            return true;
+        }
+        if (mode === 'piqure') {
+            syncPiqureFromDom(state);
+            var pSec = state.piqureSections[index];
+            if (!pSec || !pSec.userAdded) return false;
+            state.piqureSections.splice(index, 1);
+            mergeLiaisonsAfterRemove(state.piqureLiaisons, index);
+            return true;
+        }
+        syncMainFromDom(state);
+        var sec = state.sectionsMain[index];
+        if (!sec || !sec.userAdded) return false;
+        state.sectionsMain.splice(index, 1);
+        mergeLiaisonsAfterRemove(state.liaisonsMain, index);
+        return true;
+    }
+
+    function wireRemoveSectionButtons(config) {
+        var inspector = document.getElementById('inspector');
+        if (!inspector || inspector.dataset.removeSectionBound === '1') return;
+        inspector.dataset.removeSectionBound = '1';
+
+        var onRefresh = config && config.onRefresh ? config.onRefresh : function () { };
+
+        inspector.addEventListener('click', function (e) {
+            var btn = e.target.closest('.btn-remove-section');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            var state = getState();
+            if (!state) return;
+
+            var index = parseInt(btn.getAttribute('data-section-index'), 10);
+            var mode = btn.getAttribute('data-section-mode') || 'main';
+            if (!isFinite(index)) return;
+
+            if (!removeSectionAt(mode, index, state)) return;
+
+            onRefresh();
+            if (typeof setupListeners === 'function') setupListeners();
+            if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) UIControls.syncAllRangeSliders();
+            if (typeof Validator !== 'undefined' && Validator.applyAllUserConstraints) Validator.applyAllUserConstraints();
+            if (typeof updateBouteille === 'function') updateBouteille();
+            if (typeof draw2D === 'function') draw2D();
+        });
+    }
+
     function wireAddSectionButton(config) {
         var ids = config && config.containerIds ? config.containerIds : {};
         var onRefresh = config && config.onRefresh ? config.onRefresh : function () { };
@@ -27,53 +224,7 @@ var SectionsEvents = (function () {
             var state = getState();
             if (!state) return;
 
-            function getNum(id, fallback) {
-                var el = document.getElementById(id);
-                if (!el) return fallback;
-                var v = parseFloat(el.value);
-                return isFinite(v) ? v : fallback;
-            }
-
-            var currentCount = 0;
-            var hInputs = document.querySelectorAll('input[id^="s"][id$="-h"]');
-            for (var hi = 0; hi < hInputs.length; hi++) {
-                var m = (hInputs[hi].id || '').match(/^s(\d+)-h$/);
-                if (!m) continue;
-                var k = parseInt(m[1], 10);
-                if (isFinite(k) && k > currentCount) currentCount = k;
-            }
-            if (!currentCount) currentCount = state.sectionsMain.length;
-
-            var newSections = [];
-            for (var k2 = 1; k2 <= currentCount; k2++) {
-                var base = state.sectionsMain[k2 - 1] || { label: 'Section', hMin: 0, hMax: 350, LMin: 10, LMax: 120, step: 0.5, hStep: 0.5 };
-                newSections.push({
-                    label: base.label || 'Section',
-                    h: getNum('s' + k2 + '-h', base.h || 0),
-                    hMin: base.hMin,
-                    hMax: base.hMax,
-                    L: getNum('s' + k2 + '-L', base.L || 0),
-                    P: getNum('s' + k2 + '-P', base.P || 0),
-                    LMin: base.LMin,
-                    LMax: base.LMax,
-                    step: base.step,
-                    hStep: base.hStep
-                });
-            }
-            state.sectionsMain = newSections;
-
-            var newLiaisons = [];
-            for (var r = 1; r < currentCount; r++) {
-                var rid = 'r' + r + (r + 1);
-                var baseR = state.liaisonsMain[r - 1] || { rho: 10, rhoMin: 0, rhoMax: 400, rhoStep: 0.5 };
-                newLiaisons.push({
-                    rho: getNum(rid + '-rho', baseR.rho),
-                    rhoMin: baseR.rhoMin,
-                    rhoMax: baseR.rhoMax,
-                    rhoStep: baseR.rhoStep
-                });
-            }
-            state.liaisonsMain = newLiaisons;
+            syncMainFromDom(state);
 
             var snapshot = {};
             var els = document.querySelectorAll('#Panel-gauche input, #Panel-gauche select');
@@ -104,7 +255,8 @@ var SectionsEvents = (function () {
                     P: Math.round(((Ab.P + Bb.P) * 0.5) * 10) / 10,
                     LMin: Math.min(Ab.LMin, Bb.LMin),
                     LMax: Math.max(Ab.LMax, Bb.LMax),
-                    step: Math.min(Ab.step, Bb.step)
+                    step: Math.min(Ab.step, Bb.step),
+                    userAdded: true
                 };
                 state.bagueSections.splice(between, 0, newB);
                 var baseRb = state.bagueLiaisons[between - 1] || { id: 'rb' + between, rho: 5, rhoMin: 0, rhoMax: 400, rhoStep: 0.5 };
@@ -133,7 +285,8 @@ var SectionsEvents = (function () {
                     P: Math.round(((Ap.P + Bp.P) * 0.5) * 10) / 10,
                     LMin: Math.min(Ap.LMin, Bp.LMin),
                     LMax: Math.max(Ap.LMax, Bp.LMax),
-                    step: Math.min(Ap.step, Bp.step)
+                    step: Math.min(Ap.step, Bp.step),
+                    userAdded: true
                 };
                 state.piqureSections.splice(between, 0, newP);
                 function newPiqureLiaisonId(n) { return n <= 2 ? ('rp' + n) : ('rpp' + n); }
@@ -155,7 +308,8 @@ var SectionsEvents = (function () {
                     LMin: Math.min(A.LMin, B.LMin),
                     LMax: Math.max(A.LMax, B.LMax),
                     step: Math.min(A.step, B.step),
-                    hStep: Math.min(A.hStep, B.hStep)
+                    hStep: Math.min(A.hStep, B.hStep),
+                    userAdded: true
                 };
                 state.sectionsMain.splice(between, 0, newS);
                 var baseR = state.liaisonsMain[between - 1] || { rho: 10, rhoMin: 0, rhoMax: 400, rhoStep: 0.5 };
@@ -243,6 +397,7 @@ var SectionsEvents = (function () {
     }
 
     return {
-        wireAddSectionButton: wireAddSectionButton
+        wireAddSectionButton: wireAddSectionButton,
+        wireRemoveSectionButtons: wireRemoveSectionButtons
     };
 })();

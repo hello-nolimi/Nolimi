@@ -14,7 +14,9 @@ const paperFormats = (typeof Plans2DPaper !== 'undefined' && Plans2DPaper.getFor
         'A4_P': { w: 210, h: 297 },
         'A4_L': { w: 297, h: 210 },
         'A3_P': { w: 297, h: 420 },
-        'A3_L': { w: 420, h: 297 }
+        'A3_L': { w: 420, h: 297 },
+        'A2_P': { w: 420, h: 594 },
+        'A2_L': { w: 594, h: 420 }
     };
 window.paperFormats = paperFormats;
 
@@ -71,7 +73,7 @@ function draw2D() {
     ctx2d.scale(cam2D.zoom, cam2D.zoom);
     const drawStyle = (typeof Plans2DRules !== 'undefined' && Plans2DRules.DRAW_STYLE) ? Plans2DRules.DRAW_STYLE : null;
     const pageStyle = drawStyle && drawStyle.page ? drawStyle.page : { margin: 10, frameLineWidth: 0.5, shadow: { color: 'rgba(0, 0, 0, 0.2)', blur: 12, offsetX: 0, offsetY: 0 } };
-    const cartoucheStyle = drawStyle && drawStyle.cartouche ? drawStyle.cartouche : { width: 110, height: 35, rowHeight: 9, font: '4px Arial', textLeftPadding: 2, scaleTextX: 65 };
+    const cartoucheStyle = drawStyle && drawStyle.cartouche ? drawStyle.cartouche : { rowHeight: 13, unitRowFactor: 0.5 };
 
     // ---- FEUILLE BLANCHE ----
     const paper = (typeof Plans2DPaper !== 'undefined' && Plans2DPaper.getPaperInfo)
@@ -99,40 +101,16 @@ function draw2D() {
     ctx2d.lineWidth = pageStyle.frameLineWidth;
     ctx2d.strokeRect(startX + margin, startY + margin, paperW - margin * 2, paperH - margin * 2);
 
-    // ---- CARTOUCHE ----
-    const borderBottomRightX = startX + paperW - margin;
-    const borderBottomRightY = startY + paperH - margin;
-    const cartW = cartoucheStyle.width;
-    const cartH = cartoucheStyle.height;
-    const cartX = borderBottomRightX - cartW;
-    const cartY = borderBottomRightY - cartH;
-
-    ctx2d.strokeStyle = '#000000';
-    ctx2d.lineWidth = 0.5;
-    ctx2d.strokeRect(cartX, cartY, cartW, cartH);
-    
-    ctx2d.beginPath();
-    ctx2d.moveTo(cartX, cartY + cartoucheStyle.rowHeight);  ctx2d.lineTo(cartX + cartW, cartY + cartoucheStyle.rowHeight);
-    ctx2d.moveTo(cartX, cartY + cartoucheStyle.rowHeight * 2); ctx2d.lineTo(cartX + cartW, cartY + cartoucheStyle.rowHeight * 2);
-    ctx2d.moveTo(cartX, cartY + cartoucheStyle.rowHeight * 3); ctx2d.lineTo(cartX + cartW, cartY + cartoucheStyle.rowHeight * 3);
-    ctx2d.stroke();
-
-    ctx2d.fillStyle = '#000000';
-    ctx2d.font = cartoucheStyle.font;
-    
-    const cartoucheData = (typeof Plans2DCartouche !== 'undefined' && Plans2DCartouche.getData)
-        ? Plans2DCartouche.getData()
-        : { title: '', drafter: '', checker: '', capacity: '' };
-    
-    ctx2d.fillText("Projet: " + cartoucheData.title, cartX + cartoucheStyle.textLeftPadding, cartY + 6);
-    ctx2d.fillText("Dessinateur: " + cartoucheData.drafter, cartX + cartoucheStyle.textLeftPadding, cartY + 15);
-    ctx2d.fillText("Vérificateur: " + cartoucheData.checker, cartX + cartoucheStyle.textLeftPadding, cartY + 24);
-    ctx2d.fillText("Contenance: " + cartoucheData.capacity, cartX + cartoucheStyle.textLeftPadding, cartY + 32);
-
-    const scaleText = (typeof Plans2DViews !== 'undefined' && Plans2DViews.getScaleLabel)
-        ? Plans2DViews.getScaleLabel()
-        : '1:1';
-    ctx2d.fillText("Echelle: " + scaleText, cartX + cartoucheStyle.scaleTextX, cartY + 32);
+    // ---- CARTOUCHE (largeur zone utile A4, taille fixe quel que soit le format) ----
+    const cartLayout = (typeof Plans2DCartouche !== 'undefined' && Plans2DCartouche.getLayout)
+        ? Plans2DCartouche.getLayout(paperW, paperH, margin, cartoucheStyle)
+        : null;
+    if (cartLayout && typeof Plans2DCartouche !== 'undefined' && Plans2DCartouche.draw) {
+        Plans2DCartouche.draw(ctx2d, cartLayout.x, cartLayout.y, Object.assign({}, cartoucheStyle, {
+            width: cartLayout.width,
+            height: cartLayout.height
+        }));
+    }
 
     // ---- GESTION DES VUES (LOGIQUE) ----
     const showBottomView = (typeof Plans2DViews !== 'undefined' && Plans2DViews.getShowBottomView)
@@ -176,8 +154,13 @@ function draw2D() {
         const D_epaule = max_R * 2;
         const D_finish = R_top * 2;
         
+        const mainViewLiftY = (drawStyle && drawStyle.mainView && drawStyle.mainView.liftY != null)
+            ? drawStyle.mainView.liftY
+            : 20;
+        const mainViewOffsetY = (bottleHeight * drawingScale) / 2 - mainViewLiftY;
+
         ctx2d.save();
-        ctx2d.translate(mainViewOffsetX, (bottleHeight * drawingScale) / 2); 
+        ctx2d.translate(mainViewOffsetX, mainViewOffsetY);
         ctx2d.scale(drawingScale, -drawingScale); 
 
         // 1. Axe de symétrie
@@ -266,19 +249,19 @@ function draw2D() {
             ctx2d.font = '4px Arial'; 
             ctx2d.textAlign = 'center';
             ctx2d.textBaseline = 'bottom';
-            const titleY = - (bottleHeight * drawingScale) / 2 - 20;
+            const titleY = -mainViewOffsetY - 20;
             ctx2d.fillText("VUE DE FACE", mainViewOffsetX, titleY);
         }
 
         // ====================================================
         // 4. VUE DU DESSOUS (GÉNÉRÉE MATHÉMATIQUEMENT)
         // ====================================================
-        if (showBottomView) {
+        if (showBottomView && cartLayout) {
             ctx2d.save();
-            
-            const bottomViewX = cartX + (cartW / 2);
+
+            const bottomViewX = cartLayout.x + cartLayout.width / 2;
             const maxRadiusScaled = max_R * drawingScale;
-            const bottomViewY = cartY - maxRadiusScaled - 25; 
+            const bottomViewY = cartLayout.y - maxRadiusScaled - 25; 
             
             ctx2d.translate(bottomViewX, bottomViewY);
 
@@ -325,7 +308,11 @@ function setup2DControlsListeners() {
         Plans2DEvents.bindControlRedraw(draw2D);
         return;
     }
-    const ids = ['paper-format-select', 'drawing-scale-select', 'cb-vue-dessous', 'cartouche-title', 'cartouche-drafter', 'cartouche-checker', 'cartouche-capacity'];
+    const ids = [
+        'paper-format-select', 'drawing-scale-select', 'cb-vue-dessous',
+        'cartouche-title', 'cartouche-plan-number', 'cartouche-date',
+        'cartouche-drafter', 'cartouche-checker', 'cartouche-index'
+    ];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;

@@ -19,7 +19,9 @@ var ExportRules = (function () {
             A4_P: { orientation: 'p', format: 'a4' },
             A4_L: { orientation: 'l', format: 'a4' },
             A3_P: { orientation: 'p', format: 'a3' },
-            A3_L: { orientation: 'l', format: 'a3' }
+            A3_L: { orientation: 'l', format: 'a3' },
+            A2_P: { orientation: 'p', format: 'a2' },
+            A2_L: { orientation: 'l', format: 'a2' }
         }
     };
 })();

@@ -12,6 +12,9 @@ var RattachementRules = (function () {
         RHO_MIN: 0,
         RHO_MAX: 400,
         QUARTER_ARC_TOLERANCE_MM: 0.5,
+        /** Angle au coin admissible pour un congé (pas seulement 90°). */
+        RAYON_MIN_CORNER_ANGLE_DEG: 25,
+        RAYON_MAX_CORNER_ANGLE_DEG: 155,
         SPLINE_STEPS: 48,
         MIN_SAFE_X: 1
     };

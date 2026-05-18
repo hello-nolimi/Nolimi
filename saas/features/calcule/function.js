@@ -1,6 +1,7 @@
 // Affichage du volume total dans la vue 3D (coin bas-gauche).
 var CalculeVolumeFeature = (function () {
     var OVERLAY_ID = 'volume-total-overlay';
+    var lastResults = null;
     var DEFAULT_CAPACITE_UTILE_CL = 75;
     var DEFAULT_BOUCHON_RENTRANT_ON = false;
     var DEFAULT_BOUCHON_RENTRANT_MM = 0;
@@ -63,44 +64,64 @@ var CalculeVolumeFeature = (function () {
         return el;
     }
 
-    function updateFromSectionsData(sectionsData) {
-        var el = ensureOverlay();
-        if (!el) return;
+    function computeFromSectionsData(sectionsData) {
         if (typeof CalculeVolumeMath === 'undefined' || !CalculeVolumeMath.computeTotalInteriorVolumeMm3) {
-            el.textContent = 'Volume total: calcul indisponible';
-            return;
+            return { available: false };
         }
         var volumeMm3 = CalculeVolumeMath.computeTotalInteriorVolumeMm3(sectionsData || {});
-        var outerMm3 = (typeof CalculeVolumeMath !== 'undefined' && CalculeVolumeMath.computeTotalOuterVolumeMm3)
+        var outerMm3 = CalculeVolumeMath.computeTotalOuterVolumeMm3
             ? CalculeVolumeMath.computeTotalOuterVolumeMm3(sectionsData || {})
             : volumeMm3;
         var rasBordCl = volumeMm3 / 10000;
         var capaciteUtileCl = Math.min(rasBordCl, clampCapaciteUtileCl(getState().capaciteUtileCl));
-        var degarnieMmBrut = (typeof CalculeVolumeMath !== 'undefined' && CalculeVolumeMath.computeDegarnieMmFromUsefulCapacityCl)
+        var degarnieMmBrut = CalculeVolumeMath.computeDegarnieMmFromUsefulCapacityCl
             ? CalculeVolumeMath.computeDegarnieMmFromUsefulCapacityCl(sectionsData || {}, capaciteUtileCl)
             : 0;
         var st = getState();
         var bouchonMm = (st.bouchonRentrantOn ? clampBouchonRentrantMm(st.bouchonRentrantMm) : 0);
         var degarnieMm = degarnieMmBrut;
         var chamberClRaw = Math.max(0, rasBordCl - capaciteUtileCl);
-        // Le bouchon rentrant reduit la chambre d'expansion, pas le degarnie.
-        // Application proportionnelle par rapport au degarnie calcule.
         var chamberFactor = degarnieMmBrut > 1e-9
             ? Math.max(0, (degarnieMmBrut - bouchonMm) / degarnieMmBrut)
             : 0;
         var chamberCl = chamberClRaw * chamberFactor;
         var chamberPct = rasBordCl > 1e-9 ? (chamberCl / rasBordCl) * 100 : 0;
-        var canuleMm = (typeof CalculeVolumeMath !== 'undefined' && CalculeVolumeMath.computeCanuleDiameterMm)
+        var canuleMm = CalculeVolumeMath.computeCanuleDiameterMm
             ? CalculeVolumeMath.computeCanuleDiameterMm()
             : 0;
         var densite = clampDensiteVerre(st.densiteVerre);
         var volumeVerreMm3 = Math.max(0, outerMm3 - volumeMm3);
         var poidsVerreG = (volumeVerreMm3 / 1000) * densite;
-        el.textContent = 'Capacite ras bord: ' + formatVolume(volumeMm3) + ' cl'
-            + '\nDegarnie: ' + degarnieMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
-            + '\nChambre d expansion: ' + chamberPct.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'
-            + '\nØ canule: ' + canuleMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
-            + '\nPoids verre: ' + poidsVerreG.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' g';
+        return {
+            available: true,
+            volumeMm3: volumeMm3,
+            rasBordCl: rasBordCl,
+            capaciteUtileCl: capaciteUtileCl,
+            degarnieMm: degarnieMm,
+            chamberPct: chamberPct,
+            canuleMm: canuleMm,
+            poidsVerreG: poidsVerreG
+        };
+    }
+
+    function updateFromSectionsData(sectionsData) {
+        var el = ensureOverlay();
+        lastResults = computeFromSectionsData(sectionsData);
+        if (!el) return;
+        if (!lastResults.available) {
+            el.textContent = 'Volume total: calcul indisponible';
+            return;
+        }
+        el.textContent = 'Capacite ras bord: ' + formatVolume(lastResults.volumeMm3) + ' cl'
+            + '\nDegarnie: ' + lastResults.degarnieMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
+            + '\nChambre d expansion: ' + lastResults.chamberPct.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'
+            + '\nØ canule: ' + lastResults.canuleMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
+            + '\nPoids verre: ' + lastResults.poidsVerreG.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' g';
+        if (typeof draw2D === 'function') draw2D();
+    }
+
+    function getResults() {
+        return lastResults;
     }
 
     function renderPanel() {
@@ -185,6 +206,7 @@ var CalculeVolumeFeature = (function () {
 
     return {
         updateFromSectionsData: updateFromSectionsData,
+        getResults: getResults,
         renderPanel: renderPanel
     };
 })();
