@@ -898,6 +898,7 @@ var BottleView3D = (function () {
     return {
         updateView: updateView,
         getProfilePointsFor2D: getProfilePointsFor2D,
+        applyViewOpacity: applyViewOpacity,
         dispose: dispose
     };
 })();

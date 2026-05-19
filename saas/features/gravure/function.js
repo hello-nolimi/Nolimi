@@ -169,6 +169,8 @@ var Gravure3D = (function () {
                 : new THREE.MeshPhongMaterial({ color: 0x99bbdd, side: THREE.DoubleSide });
             mat.side = THREE.DoubleSide;
             var mesh = new THREE.Mesh(geom, mat);
+            mesh.userData.isPiqure = false;
+            mesh.userData.isInterior = false;
             group.add(mesh);
         }
         return group.children.length ? group : null;
@@ -182,7 +184,12 @@ var Gravure3D = (function () {
             engravingGroup = null;
         }
         engravingGroup = buildEngravingsGroup(surfaceInput);
-        if (engravingGroup) scene.add(engravingGroup);
+        if (engravingGroup) {
+            scene.add(engravingGroup);
+            if (typeof BottleView3D !== 'undefined' && BottleView3D.applyViewOpacity) {
+                BottleView3D.applyViewOpacity(engravingGroup);
+            }
+        }
     }
 
     return { updateScene: updateScene };
