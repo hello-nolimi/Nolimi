@@ -293,11 +293,11 @@ var Validator = (function () {
 
     // ====== RÈGLES DIMENSIONS (L/P) ======
     var DIMENSION_RULES = [
-        { sourceL: 's1-L',  sourceP: 's1-P',  targetL: 'sp-L',  targetP: 'sp-P',  min: MIN_DIMENSION, defaultSourceL: 71, defaultSourceP: 71 },
-        { sourceL: 'sp-L',  sourceP: 'sp-P',  targetL: 'sp2-L', targetP: 'sp2-P', min: MIN_DIMENSION, defaultSourceL: 58, defaultSourceP: 58 },
-        { sourceL: 'sp2-L', sourceP: 'sp2-P', targetL: 'sp3-L', targetP: 'sp3-P', min: MIN_DIMENSION, defaultSourceL: 48, defaultSourceP: 48 },
-        { sourceL: 'sb2-L', sourceP: 'sb2-P', targetL: 'sb3-L', targetP: 'sb3-P', min: MIN_DIMENSION, defaultSourceL: 35, defaultSourceP: 35 },
-        { sourceL: 'sb3-L', sourceP: 'sb3-P', targetL: 'sb4-L', targetP: 'sb4-P', min: MIN_DIMENSION, defaultSourceL: 33, defaultSourceP: 33 },
+        { sourceL: 's1-L',  sourceP: 's1-P',  targetL: 'sp-L',  targetP: 'sp-P',  min: MIN_DIMENSION, defaultSourceL: 70, defaultSourceP: 70 },
+        { sourceL: 'sp-L',  sourceP: 'sp-P',  targetL: 'sp2-L', targetP: 'sp2-P', min: MIN_DIMENSION, defaultSourceL: 55, defaultSourceP: 55 },
+        { sourceL: 'sp2-L', sourceP: 'sp2-P', targetL: 'sp3-L', targetP: 'sp3-P', min: MIN_DIMENSION, defaultSourceL: 45, defaultSourceP: 45 },
+        { sourceL: 'sb2-L', sourceP: 'sb2-P', targetL: 'sb3-L', targetP: 'sb3-P', min: MIN_DIMENSION, defaultSourceL: 29.5, defaultSourceP: 29.5 },
+        { sourceL: 'sb3-L', sourceP: 'sb3-P', targetL: 'sb4-L', targetP: 'sb4-P', min: MIN_DIMENSION, defaultSourceL: 25.5, defaultSourceP: 25.5 },
         { sourceL: 'sb4-L', sourceP: 'sb4-P', targetL: 'sb5-L', targetP: 'sb5-P', min: MIN_DIMENSION, defaultSourceL: 31, defaultSourceP: 31 }
     ];
 

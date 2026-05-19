@@ -24,7 +24,7 @@ var Plans2DData = (function () {
     function getPiqureProfile2D() {
         var points = [];
         var s1h = getNumericValue('s1-h', 0);
-        var spL = getNumericValue('sp-L', 58);
+        var spL = getNumericValue('sp-L', 55);
         points.push({ x: Math.max(0, spL / 2), y: s1h });
         var spIdxs = getIndexedHeights('sp');
         spIdxs.forEach(function (k) {

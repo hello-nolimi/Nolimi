@@ -530,14 +530,14 @@ function setupListeners() {
     var sb1H = document.getElementById('sb1-h');
     var sb1HSlider = document.getElementById('sb1-h-slider');
     if (s5H && sb1H && sb1HSlider) {
-        var h0 = (parseFloat(s5H.value) || 280) + 2;
+        var h0 = (parseFloat(s5H.value) || 282) + 2;
         sb1H.value = h0;
         sb1HSlider.value = h0;
     }
     var sb2H = document.getElementById('sb2-h');
     var sb2HSlider = document.getElementById('sb2-h-slider');
     if (sb1H && sb2H && sb2HSlider) {
-        var h2 = (parseFloat(sb1H.value) || 282) + 15;
+        var h2 = (parseFloat(sb1H.value) || 284) + 14.5;
         sb2H.value = h2;
         sb2HSlider.value = h2;
     }
@@ -548,16 +548,16 @@ function setupListeners() {
     var sb3P = document.getElementById('sb3-P');
     var sb3PSlider = document.getElementById('sb3-P-slider');
     if (sb2H && sb3H && sb3HSlider) {
-        var h3 = (parseFloat(sb2H.value) || 297) + 2;
+        var h3 = (parseFloat(sb2H.value) || 298.5) + 1.5;
         sb3H.value = h3;
         sb3HSlider.value = h3;
     }
-    if (sb3L && sb3LSlider) { sb3L.value = 33; sb3LSlider.value = 33; }
-    if (sb3P && sb3PSlider) { sb3P.value = 33; sb3PSlider.value = 33; }
+    if (sb3L && sb3LSlider) { sb3L.value = 25.5; sb3LSlider.value = 25.5; }
+    if (sb3P && sb3PSlider) { sb3P.value = 25.5; sb3PSlider.value = 25.5; }
     var sb5H = document.getElementById('sb5-h');
     var sb5HSlider = document.getElementById('sb5-h-slider');
     if (sb3H && sb5H && sb5HSlider) {
-        var h5 = Math.max(0, (parseFloat(sb3H.value) || 299) - 2);
+        var h5 = Math.max(0, (parseFloat(sb3H.value) || 300) - 2);
         sb5H.value = h5;
         sb5HSlider.value = h5;
     }

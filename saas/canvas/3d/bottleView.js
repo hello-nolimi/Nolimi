@@ -63,14 +63,14 @@ var BottleView3D = (function () {
     }
 
     var PIQURE_CONFIG = [
-        { h: 's1-h', L: 'sp-L', P: 'sp-P', formKey: 'sp-forme', carreKey: 'sp-carre-niveau', defaultL: 58, defaultP: 58 },
-        { h: 'sp2-h', L: 'sp2-L', P: 'sp2-P', formKey: 'sp2-forme', carreKey: 'sp2-carre-niveau', defaultL: 48, defaultP: 48 },
-        { h: 'sp3-h', L: 'sp3-L', P: 'sp3-P', formKey: 'sp3-forme', carreKey: 'sp3-carre-niveau', defaultL: 35, defaultP: 35 }
+        { h: 's1-h', L: 'sp-L', P: 'sp-P', formKey: 'sp-forme', carreKey: 'sp-carre-niveau', defaultL: 55, defaultP: 55 },
+        { h: 'sp2-h', L: 'sp2-L', P: 'sp2-P', formKey: 'sp2-forme', carreKey: 'sp2-carre-niveau', defaultL: 45, defaultP: 45 },
+        { h: 'sp3-h', L: 'sp3-L', P: 'sp3-P', formKey: 'sp3-forme', carreKey: 'sp3-carre-niveau', defaultL: 28, defaultP: 28 }
     ];
     var BAGUE_CONFIG = [
-        { h: 'sb1-h', L: 'sb1-L', P: 'sb1-P', defaultL: 35, defaultP: 35 },
-        { h: 'sb2-h', L: 'sb2-L', P: 'sb2-P', defaultL: 35, defaultP: 35 },
-        { h: 'sb3-h', L: 'sb3-L', P: 'sb3-P', defaultL: 33, defaultP: 33 },
+        { h: 'sb1-h', L: 'sb1-L', P: 'sb1-P', defaultL: 29.5, defaultP: 29.5 },
+        { h: 'sb2-h', L: 'sb2-L', P: 'sb2-P', defaultL: 29.5, defaultP: 29.5 },
+        { h: 'sb3-h', L: 'sb3-L', P: 'sb3-P', defaultL: 25.5, defaultP: 25.5 },
         { h: 'sb4-h', L: 'sb4-L', P: 'sb4-P', defaultL: 31, defaultP: 31 },
         { h: 'sb5-h', L: 'sb5-L', P: 'sb5-P', defaultL: 29, defaultP: 29 }
     ];
@@ -594,7 +594,7 @@ var BottleView3D = (function () {
         if (bottleGroup && bottleGroup.geometry && typeof THREE !== 'undefined') {
             var thicknessMm = (typeof InterieurMath !== 'undefined' && InterieurMath.getThicknessMm)
                 ? InterieurMath.getThicknessMm()
-                : 2.5;
+                : 3.5;
             var innerSectionsData = (typeof InterieurMath !== 'undefined' && InterieurMath.buildInteriorSectionsDataFromThickness)
                 ? InterieurMath.buildInteriorSectionsDataFromThickness(sectionsData, thicknessMm, thicknessMm)
                 : sectionsData;
@@ -705,7 +705,7 @@ var BottleView3D = (function () {
         for (var sck = 0; sck < spIdxs.length; sck++) if (sck === 0 || spIdxs[sck] !== spIdxs[sck - 1]) spClean.push(spIdxs[sck]);
         for (var ssi = 0; ssi < spClean.length; ssi++) {
             var ksp = spClean[ssi];
-            var sec = getSectionFromPanel({ h: 'sp' + ksp + '-h', L: 'sp' + ksp + '-L', P: 'sp' + ksp + '-P', formKey: 'sp' + ksp + '-forme', carreKey: 'sp' + ksp + '-carre-niveau', defaultL: 48, defaultP: 48 });
+            var sec = getSectionFromPanel({ h: 'sp' + ksp + '-h', L: 'sp' + ksp + '-L', P: 'sp' + ksp + '-P', formKey: 'sp' + ksp + '-forme', carreKey: 'sp' + ksp + '-carre-niveau', defaultL: 45, defaultP: 45 });
             piqSections.push(sec);
             addSectionRing(sectionRingGroup, sec, false, true);
         }
@@ -716,7 +716,7 @@ var BottleView3D = (function () {
         sectionRingGroup.add(feuille);
         var thicknessNow = (typeof InterieurMath !== 'undefined' && InterieurMath.getThicknessMm)
             ? InterieurMath.getThicknessMm()
-            : 2.5;
+            : 3.5;
         var piqureInnerMat = new THREE.MeshPhongMaterial({ color: 0x6f8ead, side: THREE.BackSide, shininess: 20 });
         var s1Inner = InterieurMath.insetSection(s1, thicknessNow);
         s1Inner.H = s1.H + thicknessNow;
@@ -755,7 +755,7 @@ var BottleView3D = (function () {
             }
         }
         var lastP = piqSections[piqSections.length - 1];
-        var rp3H = getPanelValue('rp3-h', 30);
+        var rp3H = getPanelValue('rp3-h', 35);
         if (lastP && rp3H > lastP.H) {
             var feuilleVersAxe = buildPiqureFeuilleVersAxe(lastP, rp3H);
             feuilleVersAxe.userData.isPiqure = true;

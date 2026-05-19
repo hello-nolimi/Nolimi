@@ -151,8 +151,8 @@ var CalculeVolumeMath = (function () {
             var ksp = unique[u];
             out.push({
                 H: Math.max(0, getPanelValue('sp' + ksp + '-h', 0)),
-                a: Math.max(0, getPanelValue('sp' + ksp + '-L', 48) / 2),
-                b: Math.max(0, getPanelValue('sp' + ksp + '-P', 48) / 2),
+                a: Math.max(0, getPanelValue('sp' + ksp + '-L', 45) / 2),
+                b: Math.max(0, getPanelValue('sp' + ksp + '-P', 45) / 2),
                 shape: getPanelSelectValue('sp' + ksp + '-forme', 'rond'),
                 carreNiveau: Math.max(0, Math.min(100, getPanelValue('sp' + ksp + '-carre-niveau', 0)))
             });
@@ -194,8 +194,8 @@ var CalculeVolumeMath = (function () {
         var s1H = sectionsData.sections[0].H || 0;
         var piq = [{
             H: s1H,
-            a: Math.max(0, getPanelValue('sp-L', 58) / 2),
-            b: Math.max(0, getPanelValue('sp-P', 58) / 2),
+            a: Math.max(0, getPanelValue('sp-L', 55) / 2),
+            b: Math.max(0, getPanelValue('sp-P', 55) / 2),
             shape: getPanelSelectValue('sp-forme', 'rond'),
             carreNiveau: Math.max(0, Math.min(100, getPanelValue('sp-carre-niveau', 0)))
         }];
@@ -213,7 +213,7 @@ var CalculeVolumeMath = (function () {
         }
 
         var last = piq[piq.length - 1];
-        var apexH = Math.max(last.H, getPanelValue('rp3-h', 30));
+        var apexH = Math.max(last.H, getPanelValue('rp3-h', 35));
         var dy = apexH - last.H;
         if (dy > EPS) {
             var Alast = getShapeArea(last);
@@ -228,9 +228,9 @@ var CalculeVolumeMath = (function () {
         var bague = getDynamicBagueSections();
         if (!bague.length) {
             bague = [
-                { H: Math.max(0, getPanelValue('sb1-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb1-L', 35) / 2), b: Math.max(0, getPanelValue('sb1-P', 35) / 2), shape: 'rond', carreNiveau: 0 },
-                { H: Math.max(0, getPanelValue('sb2-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb2-L', 35) / 2), b: Math.max(0, getPanelValue('sb2-P', 35) / 2), shape: 'rond', carreNiveau: 0 },
-                { H: Math.max(0, getPanelValue('sb3-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb3-L', 33) / 2), b: Math.max(0, getPanelValue('sb3-P', 33) / 2), shape: 'rond', carreNiveau: 0 }
+                { H: Math.max(0, getPanelValue('sb1-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb1-L', 29.5) / 2), b: Math.max(0, getPanelValue('sb1-P', 29.5) / 2), shape: 'rond', carreNiveau: 0 },
+                { H: Math.max(0, getPanelValue('sb2-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb2-L', 29.5) / 2), b: Math.max(0, getPanelValue('sb2-P', 29.5) / 2), shape: 'rond', carreNiveau: 0 },
+                { H: Math.max(0, getPanelValue('sb3-h', sTop.H || 0)), a: Math.max(0, getPanelValue('sb3-L', 25.5) / 2), b: Math.max(0, getPanelValue('sb3-P', 25.5) / 2), shape: 'rond', carreNiveau: 0 }
             ];
         }
 
@@ -248,7 +248,7 @@ var CalculeVolumeMath = (function () {
     function buildInteriorContext(sectionsData) {
         var thicknessMm = (typeof InterieurMath !== 'undefined' && InterieurMath.getThicknessMm)
             ? InterieurMath.getThicknessMm()
-            : 2.5;
+            : 3.5;
 
         var innerSectionsData = (typeof InterieurMath !== 'undefined' && InterieurMath.buildInteriorSectionsDataFromThickness)
             ? InterieurMath.buildInteriorSectionsDataFromThickness(sectionsData, thicknessMm, thicknessMm)
@@ -281,8 +281,8 @@ var CalculeVolumeMath = (function () {
             var s1H = (sectionsData.sections[0].H || 0) + thicknessMm;
             var p0 = {
                 H: s1H,
-                a: Math.max(0, getPanelValue('sp-L', 58) / 2),
-                b: Math.max(0, getPanelValue('sp-P', 58) / 2),
+                a: Math.max(0, getPanelValue('sp-L', 55) / 2),
+                b: Math.max(0, getPanelValue('sp-P', 55) / 2),
                 shape: getPanelSelectValue('sp-forme', 'rond'),
                 carreNiveau: Math.max(0, Math.min(100, getPanelValue('sp-carre-niveau', 0)))
             };
@@ -310,7 +310,7 @@ var CalculeVolumeMath = (function () {
         var rp3HInner = null;
         if (piq.length) {
             var last = piq[piq.length - 1];
-            rp3HInner = Math.max(last.H, getPanelValue('rp3-h', 30) + thicknessMm);
+            rp3HInner = Math.max(last.H, getPanelValue('rp3-h', 35) + thicknessMm);
         }
 
         return {
@@ -381,7 +381,7 @@ var CalculeVolumeMath = (function () {
         var top = bague[bague.length - 1];
         var thicknessMm = (typeof InterieurMath !== 'undefined' && InterieurMath.getThicknessMm)
             ? InterieurMath.getThicknessMm()
-            : 2.5;
+            : 3.5;
         var topInner = (typeof InterieurMath !== 'undefined' && InterieurMath.insetSection)
             ? InterieurMath.insetSection(top, thicknessMm)
             : top;

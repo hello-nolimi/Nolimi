@@ -1,7 +1,7 @@
 // Feature interieur : reglage epaisseur de verre et rendu de la peau interieure.
 var InterieurFeature = (function () {
     var DEFAULT_STATE = {
-        glassThicknessMm: 2.5
+        glassThicknessMm: 3.5
     };
 
     function getState() {

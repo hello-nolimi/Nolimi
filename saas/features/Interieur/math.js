@@ -3,7 +3,7 @@ var InterieurMath = (function () {
     function getThicknessMm() {
         return (typeof InterieurFeature !== 'undefined' && InterieurFeature.getGlassThicknessMm)
             ? InterieurFeature.getGlassThicknessMm()
-            : 2.5;
+            : 3.5;
     }
 
     function buildInteriorSectionsDataFromThickness(sectionsData, thicknessMm, bottomLiftMm) {

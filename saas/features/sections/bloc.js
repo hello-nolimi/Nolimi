@@ -6,6 +6,12 @@ var SectionsBloc = (function () {
             : '';
     }
 
+    function profilOptionsForType(selectedType) {
+        selectedType = selectedType || 'ligne';
+        var html = profilOptions();
+        return html.replace('value="' + selectedType + '"', 'value="' + selectedType + '" selected');
+    }
+
     function formeOptions() {
         return (typeof SectionsRules !== 'undefined' && SectionsRules.selectFormeOptions)
             ? SectionsRules.selectFormeOptions
@@ -64,7 +70,7 @@ var SectionsBloc = (function () {
             '<button class="accordion sub-accordion">Liaison ' + (idx + 1) + '</button>' +
             '<div class="panel-controls">' +
             '<div class="control-group">' +
-            '<div class="label-row"><label>Profil</label><div class="input-wrapper"><select id="' + id + '-type">' + profilOptions() + '</select></div></div>' +
+            '<div class="label-row"><label>Profil</label><div class="input-wrapper"><select id="' + id + '-type">' + profilOptionsForType(r.type) + '</select></div></div>' +
             '</div>' +
             '<div class="control-group js-rho-group">' +
             '<div class="label-row"><label>Rayon</label><div class="input-wrapper"><input type="number" id="' + id + '-rho" value="' + r.rho + '" min="' + r.rhoMin + '" max="' + r.rhoMax + '"><span class="unit">mm</span></div></div>' +

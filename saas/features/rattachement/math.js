@@ -104,6 +104,40 @@ var RattachementMath = (function () {
         };
     }
 
+    /** T1 sur P0–coin, T2 sur coin–P1 ; recalcule les angles de l'arc. */
+    function orientFilletOnSegments(fillet, P0, corner, P1) {
+        if (!fillet) return null;
+        var t1 = fillet.T1;
+        var t2 = fillet.T2;
+        if (!pointOnSegment(P0, corner, t1) || !pointOnSegment(corner, P1, t2)) {
+            if (pointOnSegment(P0, corner, t2) && pointOnSegment(corner, P1, t1)) {
+                t1 = fillet.T2;
+                t2 = fillet.T1;
+            } else {
+                return null;
+            }
+        }
+        var cx = fillet.center.x;
+        var cy = fillet.center.y;
+        return {
+            center: fillet.center,
+            T1: t1,
+            T2: t2,
+            R: fillet.R,
+            startAngle: Math.atan2(t1.y - cy, t1.x - cx),
+            endAngle: Math.atan2(t2.y - cy, t2.x - cx)
+        };
+    }
+
+    function maxRadiusOnLSegments(P0, corner, P1) {
+        var theta = cornerInteriorAngleRad(P0, corner, P1);
+        if (theta == null) return 0;
+        var tanHalf = Math.tan(theta / 2);
+        if (tanHalf < 1e-6) return 0;
+        var tMax = Math.min(dist2d(P0, corner), dist2d(corner, P1));
+        return (tMax / tanHalf) * 0.99;
+    }
+
     function radiusForEqualLegs(legLen, thetaRad) {
         var tanHalf = Math.tan(thetaRad / 2);
         if (tanHalf < 1e-6) return 0;
@@ -128,12 +162,14 @@ var RattachementMath = (function () {
         if (!cornerAngleIsAllowed(theta)) return null;
 
         var R = radiusForEqualLegs(legLen, theta);
+        var Rcap = maxRadiusOnLSegments(P0, corner, P1);
+        if (Rcap > 1e-6) R = Math.min(R, Rcap);
         if (R < 1e-6) return null;
 
-        var fillet = buildFilletFromKernel(P0, corner, P1, R);
+        var fillet = orientFilletOnSegments(buildFilletFromKernel(P0, corner, P1, R), P0, corner, P1);
         if (fillet && isValidRayonFillet(fillet, P0, corner, P1)) return fillet;
 
-        fillet = buildFilletFromKernel(P1, corner, P0, R);
+        fillet = orientFilletOnSegments(buildFilletFromKernel(P1, corner, P0, R), P0, corner, P1);
         if (fillet && isValidRayonFillet(fillet, P0, corner, P1)) return fillet;
 
         return null;
@@ -237,6 +273,7 @@ var RattachementMath = (function () {
 
         return {
             corner: cornerM,
+            profileCorner: profileMeet,
             lenFromP0: dist2d(P0, perpMeet),
             lenFromP1: dist2d(P1, perpMeet)
         };
@@ -253,17 +290,47 @@ var RattachementMath = (function () {
         return Math.abs(da) > 1e-4;
     }
 
+    /**
+     * Congé tangent aux droites du profil (prev→P0 et P1→next).
+     * Si l'intersection tombe sur P0 ou P1, utilise le point voisin comme extrémité.
+     */
+    function buildProfileRayonFillet(P0, P1, prevPoint, nextPoint, layout, legLen) {
+        var C = layout.profileCorner;
+        if (!C) return null;
+
+        var eps = Math.max(RAYON_TOL_MM, 1e-3 * Math.max(dist2d(P0, P1), 1));
+        var tries = [];
+
+        if (dist2d(P0, C) <= eps && prevPoint) {
+            tries.push({ a: prevPoint, corner: P0, b: P1, drawCorner: P0 });
+        }
+        if (dist2d(P1, C) <= eps && nextPoint) {
+            tries.push({ a: P0, corner: P1, b: nextPoint, drawCorner: P1 });
+        }
+        if (dist2d(P0, C) > eps && dist2d(P1, C) > eps) {
+            tries.push({ a: P0, corner: C, b: P1, drawCorner: C });
+        }
+
+        for (var i = 0; i < tries.length; i++) {
+            var t = tries[i];
+            var fillet = buildFilletAtCorner(t.a, t.corner, t.b, legLen);
+            if (fillet) return { fillet: fillet, corner: t.drawCorner };
+        }
+        return null;
+    }
+
     function tryRayonAtSections(P0, P1, prevPoint, nextPoint) {
         var layout = resolveRayonLayout(P0, P1, prevPoint, nextPoint);
         if (!layout || !perpendicularLegsAreEqual(layout)) return null;
+        if (!layout.profileCorner) return null;
 
         var legLen = layout.lenFromP0;
         if (legLen < 1e-6) return null;
 
-        var fillet = buildFilletAtCorner(P0, layout.corner, P1, legLen);
-        if (!fillet) return null;
+        var built = buildProfileRayonFillet(P0, P1, prevPoint, nextPoint, layout, legLen);
+        if (!built) return null;
 
-        return { fillet: fillet, corner: layout.corner, legLen: legLen };
+        return { fillet: built.fillet, corner: built.corner, legLen: legLen };
     }
 
     function appendRayonEntities(entities, P0, P1, fillet) {

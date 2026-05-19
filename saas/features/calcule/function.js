@@ -115,7 +115,7 @@ var CalculeVolumeFeature = (function () {
         el.textContent = 'Capacite ras bord: ' + formatVolume(lastResults.volumeMm3) + ' cl'
             + '\nDegarnie: ' + lastResults.degarnieMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
             + '\nChambre d expansion: ' + lastResults.chamberPct.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'
-            + '\nØ canule: ' + lastResults.canuleMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
+            + '\nØ brochage: ' + lastResults.canuleMm.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mm'
             + '\nPoids verre: ' + lastResults.poidsVerreG.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' g';
         if (typeof draw2D === 'function') draw2D();
     }
