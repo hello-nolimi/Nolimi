@@ -17,6 +17,87 @@ var Gravure3D = (function () {
         });
     }
 
+    function getPanelValue(id, def) {
+        if (typeof document === 'undefined') return def;
+        var el = document.getElementById(id);
+        if (!el) return def;
+        var v = parseFloat(el.value);
+        return isNaN(v) ? def : v;
+    }
+
+    function getPanelValueSigned(id, def) {
+        if (typeof document === 'undefined') return def;
+        var el = document.getElementById(id);
+        if (!el) return def;
+        var v = parseFloat(el.value);
+        return isNaN(v) ? def : v;
+    }
+
+    function getPanelSelectValue(id, def) {
+        if (typeof document === 'undefined') return def;
+        var el = document.getElementById(id);
+        if (!el || !el.value) return def;
+        return el.value;
+    }
+
+    function getBagueSectionsFromDOM() {
+        if (typeof document === 'undefined') return [];
+        var inputs = document.querySelectorAll('input[id^="sb"][id$="-h"]');
+        var idxs = [];
+        for (var i = 0; i < inputs.length; i++) {
+            var m = (inputs[i].id || '').match(/^sb(\d+)-h$/);
+            if (!m) continue;
+            var k = parseInt(m[1], 10);
+            if (isFinite(k)) idxs.push(k);
+        }
+        idxs.sort(function (a, b) { return a - b; });
+        var unique = [];
+        for (var j = 0; j < idxs.length; j++) {
+            if (j === 0 || idxs[j] !== idxs[j - 1]) unique.push(idxs[j]);
+        }
+        var out = [];
+        for (var u = 0; u < unique.length; u++) {
+            var ksb = unique[u];
+            out.push({
+                H: Math.max(0, getPanelValue('sb' + ksb + '-h', 0)),
+                a: Math.max(0, getPanelValue('sb' + ksb + '-L', 35) / 2),
+                b: Math.max(0, getPanelValue('sb' + ksb + '-P', 35) / 2),
+                shape: getPanelSelectValue('sb' + ksb + '-forme', 'rond'),
+                carreNiveau: Math.max(0, Math.min(100, getPanelValue('sb' + ksb + '-carre-niveau', 0)))
+            });
+        }
+        return out;
+    }
+
+    /** Étend sectionsData avec la bague pour que la gravure suive la surface extérieure du col. */
+    function extendSurfaceWithBague(surfaceInput) {
+        if (!surfaceInput || !surfaceInput.sections || surfaceInput.sections.length < 2) return surfaceInput;
+        var bague = getBagueSectionsFromDOM();
+        if (!bague.length) return surfaceInput;
+
+        var main = surfaceInput.sections;
+        var sTop = main[main.length - 1];
+        for (var i = 0; i < bague.length; i++) {
+            if (bague[i].H < sTop.H) bague[i].H = sTop.H;
+            if (i > 0 && bague[i].H < bague[i - 1].H) bague[i].H = bague[i - 1].H;
+        }
+
+        var sections = main.slice();
+        for (var bi = 0; bi < bague.length; bi++) sections.push(bague[bi]);
+
+        var edgeTypes = (surfaceInput.edgeTypes || []).slice();
+        var rhos = (surfaceInput.rhos || []).slice();
+        edgeTypes.push('ligne');
+        rhos.push(0);
+        for (var e = 0; e < bague.length - 1; e++) {
+            var rbId = 'rb' + (e + 1);
+            edgeTypes.push(getPanelSelectValue(rbId + '-type', 'ligne'));
+            rhos.push(getPanelValueSigned(rbId + '-rho', 5));
+        }
+
+        return { sections: sections, edgeTypes: edgeTypes, rhos: rhos };
+    }
+
     function getInterpolatedSectionAtY(sections, y) {
         if (!sections || !sections.length) return { a: 1, b: 1 };
         if (sections.length === 1) return { a: Math.max(1, sections[0].a), b: Math.max(1, sections[0].b) };
@@ -183,7 +264,7 @@ var Gravure3D = (function () {
             disposeGroup(engravingGroup);
             engravingGroup = null;
         }
-        engravingGroup = buildEngravingsGroup(surfaceInput);
+        engravingGroup = buildEngravingsGroup(extendSurfaceWithBague(surfaceInput));
         if (engravingGroup) {
             scene.add(engravingGroup);
             if (typeof BottleView3D !== 'undefined' && BottleView3D.applyViewOpacity) {

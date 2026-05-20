@@ -9,7 +9,23 @@ let updateTimer;
 
 // Les règles de clamp utilisateur sont centralisées dans js/state/validator.js
 
+function bindInspectorWheelScroll() {
+    var scroller = document.getElementById('inspector-scroll');
+    if (!scroller || scroller.dataset.wheelScrollBound === '1') return;
+    scroller.dataset.wheelScrollBound = '1';
+    scroller.addEventListener('wheel', function (e) {
+        var el = e.target;
+        if (!el || !scroller.contains(el)) return;
+        var tag = el.tagName;
+        if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
+        if (tag === 'INPUT' && (el.type === 'checkbox' || el.type === 'button' || el.type === 'file')) return;
+        e.preventDefault();
+        scroller.scrollTop += e.deltaY;
+    }, { passive: false });
+}
+
 function setupListeners() {
+    bindInspectorWheelScroll();
     if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) {
         UIControls.syncAllRangeSliders();
     }
@@ -96,6 +112,8 @@ function setupListeners() {
     
     inputs.forEach(input => {
         if (input.classList.contains('gravure-y') || input.classList.contains('gravure-angle') || input.classList.contains('gravure-largeur') || input.classList.contains('gravure-profondeur')) return;
+        if (input.dataset.nolimiInputBound === '1') return;
+        input.dataset.nolimiInputBound = '1';
 
         const onUpdate = () => {
             const controlGroup = input.closest('.control-group');
@@ -642,8 +660,15 @@ function setupListeners() {
     }
 }
 
+bindInspectorWheelScroll();
+if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.prepareRestoreFromStorage) {
+    WorkspaceAutosave.prepareRestoreFromStorage();
+}
 if (typeof UIInspector !== 'undefined' && UIInspector.renderSections) {
     UIInspector.renderSections();
+}
+if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.applyRestoredValues) {
+    WorkspaceAutosave.applyRestoredValues();
 }
 if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) {
     UIControls.syncAllRangeSliders();

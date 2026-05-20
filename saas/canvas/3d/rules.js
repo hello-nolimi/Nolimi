@@ -11,7 +11,9 @@ var Canvas3DRules = (function () {
             COLOR_HIGHLIGHT: 0x0066cc
         },
         SCENE: {
-            VIEW_SIZE: 250,
+            VIEWPORT_FIT_RATIO: 0.92,
+            VIEW_SIZE_BASE: 250,
+            VIEW_SIZE: 230,
             NEAR: 1,
             FAR: 2000,
             CAMERA_POSITION: { x: 400, y: 300, z: 400 },

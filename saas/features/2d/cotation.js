@@ -4,6 +4,17 @@ var Plans2DCotation = (function () {
         return Number.isInteger(v) ? v : v.toFixed(1);
     }
 
+    function isSectionRound(L, P) {
+        if (!Number.isFinite(L)) return true;
+        if (!Number.isFinite(P)) return true;
+        return Math.abs(L - P) < 0.05;
+    }
+
+    function getDiameterLabel(L, P, diameter) {
+        var text = formatValue(diameter);
+        return isSectionRound(L, P) ? ('Ø ' + text) : text;
+    }
+
     function getRattachementLabel(rattId) {
         var typeEl = document.getElementById(rattId + '-type');
         var rhoEl = document.getElementById(rattId + '-rho');
@@ -20,6 +31,8 @@ var Plans2DCotation = (function () {
 
     return {
         formatValue: formatValue,
+        isSectionRound: isSectionRound,
+        getDiameterLabel: getDiameterLabel,
         getRattachementLabel: getRattachementLabel
     };
 })();

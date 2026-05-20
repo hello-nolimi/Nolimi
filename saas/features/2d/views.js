@@ -2,14 +2,15 @@ var Plans2DViews = (function () {
     function getScaleValue() {
         var id = (Plans2DRules && Plans2DRules.IDS && Plans2DRules.IDS.drawingScale) || 'drawing-scale-select';
         var el = document.getElementById(id);
-        return el ? el.value : '1:1';
+        return el ? el.value : ((Plans2DRules && Plans2DRules.DEFAULT_DRAWING_SCALE) || '1:1');
     }
 
     function getScaleLabel() {
         var id = (Plans2DRules && Plans2DRules.IDS && Plans2DRules.IDS.drawingScale) || 'drawing-scale-select';
         var el = document.getElementById(id);
-        if (!el || !el.options || el.selectedIndex < 0) return '1:1';
-        return el.options[el.selectedIndex].text || el.value || '1:1';
+        var def = (Plans2DRules && Plans2DRules.DEFAULT_DRAWING_SCALE) || '1:1';
+        if (!el || !el.options || el.selectedIndex < 0) return def;
+        return el.options[el.selectedIndex].text || el.value || def;
     }
 
     function getDrawingScale() {

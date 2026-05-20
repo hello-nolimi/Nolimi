@@ -4,7 +4,11 @@
 
 var SceneSetup3D = (function () {
     var sceneRules = (typeof Canvas3DRules !== 'undefined' && Canvas3DRules.SCENE) ? Canvas3DRules.SCENE : {};
-    var VIEW_SIZE = sceneRules.VIEW_SIZE || 250;
+    var VIEW_SIZE_BASE = sceneRules.VIEW_SIZE_BASE || 250;
+    var VIEWPORT_FIT_RATIO = sceneRules.VIEWPORT_FIT_RATIO != null ? sceneRules.VIEWPORT_FIT_RATIO : 0.98;
+    var VIEW_SIZE = sceneRules.VIEW_SIZE != null
+        ? sceneRules.VIEW_SIZE
+        : (VIEW_SIZE_BASE * VIEWPORT_FIT_RATIO);
     var NEAR = sceneRules.NEAR || 1;
     var FAR = sceneRules.FAR || 2000;
     var CAMERA_POSITION = sceneRules.CAMERA_POSITION || { x: 400, y: 300, z: 400 };
@@ -586,7 +590,7 @@ var SceneSetup3D = (function () {
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(w, h);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         canvasElement.appendChild(renderer.domElement);
@@ -614,6 +618,8 @@ var SceneSetup3D = (function () {
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.target.set(0, CONTROLS_TARGET_Y, 0);
+        controls.enableDamping = false;
+        controls.zoomSpeed = 0.8;
 
         return { scene: scene, camera: camera, renderer: renderer, controls: controls };
     }

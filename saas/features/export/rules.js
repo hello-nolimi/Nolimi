@@ -11,7 +11,7 @@ var ExportRules = (function () {
         DEFAULTS: {
             file3D: 'Bouteille',
             file2D: 'Plan_Bouteille',
-            paperFormat: 'A4_P',
+            paperFormat: 'A2_P',
             jpegQuality: 1.0,
             exportScaleFactor: 8
         },

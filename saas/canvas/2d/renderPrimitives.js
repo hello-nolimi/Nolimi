@@ -1,18 +1,65 @@
 var Canvas2DRenderPrimitives = (function () {
+    function getStrokeStyle(drawingScale) {
+        var mv = (typeof Plans2DRules !== 'undefined' && Plans2DRules.DRAW_STYLE && Plans2DRules.DRAW_STYLE.mainView)
+            ? Plans2DRules.DRAW_STYLE.mainView
+            : {};
+        var dash = mv.hiddenDashMm || [6, 3];
+        return {
+            visibleWidth: (mv.strokeVisibleMm != null ? mv.strokeVisibleMm : 0.6) / drawingScale,
+            hiddenWidth: (mv.strokeHiddenMm != null ? mv.strokeHiddenMm : 0.25) / drawingScale,
+            hiddenDash: [dash[0] / drawingScale, dash[1] / drawingScale]
+        };
+    }
+
+    function applyModelStroke(ctx, drawingScale, visible) {
+        var s = getStrokeStyle(drawingScale);
+        ctx.lineWidth = visible ? s.visibleWidth : s.hiddenWidth;
+        ctx.setLineDash(visible ? [] : s.hiddenDash);
+        ctx.lineCap = 'round';
+    }
+
+    function applyPixelStroke(ctx, visible) {
+        ctx.lineWidth = visible ? 0.6 : 0.25;
+        ctx.setLineDash(visible ? [] : [4, 2.5]);
+        ctx.lineCap = 'round';
+    }
+
     function drawRattachementCalloutRight(ctx, xAnchor, yAnchor, text, drawingScale, offsetX) {
         ctx.save();
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = '#000000';
         ctx.lineWidth = 0.15 / drawingScale;
-        var elbowX = xAnchor + 7 / drawingScale;
+        var aSize = 2.0 / drawingScale;
+        var arrowGapX = 2.5 / drawingScale;
         var labelX = xAnchor + offsetX / drawingScale;
+        var labelY = yAnchor + (offsetX / drawingScale) * 0.35;
+        var textGapX = 1.5 / drawingScale;
+        var leadEndX = labelX - textGapX;
+        var dx = leadEndX - xAnchor;
+        var dy = labelY - yAnchor;
+        var ex = xAnchor + arrowGapX;
+        var ey = Math.abs(dx) > 1e-6 ? yAnchor + arrowGapX * dy / dx : yAnchor;
+
+        function drawArrow(ax, ay, angle) {
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(ax - aSize * Math.cos(angle - Math.PI / 10), ay - aSize * Math.sin(angle - Math.PI / 10));
+            ctx.lineTo(ax - aSize * Math.cos(angle + Math.PI / 10), ay - aSize * Math.sin(angle + Math.PI / 10));
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(xAnchor, yAnchor);
+        ctx.stroke();
+        drawArrow(xAnchor, yAnchor, Math.atan2(yAnchor - ey, xAnchor - ex));
+
         ctx.beginPath();
         ctx.moveTo(xAnchor, yAnchor);
-        ctx.lineTo(elbowX, yAnchor);
-        ctx.lineTo(labelX - 1.5 / drawingScale, yAnchor);
+        ctx.lineTo(leadEndX, labelY);
         ctx.stroke();
         ctx.save();
-        ctx.translate(labelX, yAnchor);
+        ctx.translate(labelX, labelY);
         ctx.scale(1, -1);
         ctx.font = (3 / drawingScale) + 'px Arial';
         ctx.textAlign = 'left';
@@ -32,11 +79,9 @@ var Canvas2DRenderPrimitives = (function () {
         if (!profilePoints || profilePoints.length < 2) return;
         ctx.save();
         ctx.strokeStyle = options && options.strokeStyle ? options.strokeStyle : '#000000';
-        ctx.lineWidth = (options && options.lineWidth ? options.lineWidth : 0.5) / drawingScale;
         ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        if (options && options.dashed) ctx.setLineDash([3 / drawingScale, 2 / drawingScale]);
-        else ctx.setLineDash([]);
+        var hidden = options && (options.hiddenLine || options.dashed);
+        applyModelStroke(ctx, drawingScale, !hidden);
         ctx.beginPath();
         ctx.moveTo(profilePoints[0].x, profilePoints[0].y);
         for (var i = 1; i < profilePoints.length; i++) ctx.lineTo(profilePoints[i].x, profilePoints[i].y);
@@ -52,9 +97,8 @@ var Canvas2DRenderPrimitives = (function () {
         if (!profilePoints || profilePoints.length === 0) return;
         ctx.save();
         ctx.strokeStyle = options && options.strokeStyle ? options.strokeStyle : '#000000';
-        ctx.lineWidth = (options && options.lineWidth ? options.lineWidth : 0.35) / drawingScale;
-        if (options && options.dashed) ctx.setLineDash([2.5 / drawingScale, 1.8 / drawingScale]);
-        else ctx.setLineDash([]);
+        var hidden = options && (options.hiddenLine || options.dashed);
+        applyModelStroke(ctx, drawingScale, !hidden);
         profilePoints.forEach(function (p) {
             ctx.beginPath();
             ctx.moveTo(-p.x, p.y);
@@ -72,8 +116,7 @@ var Canvas2DRenderPrimitives = (function () {
         if (!neck || !bagueBase) return;
         ctx.save();
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 0.45 / drawingScale;
-        ctx.setLineDash([]);
+        applyModelStroke(ctx, drawingScale, true);
         ctx.beginPath();
         ctx.moveTo(neck.x, neck.y);
         ctx.lineTo(bagueBase.x, bagueBase.y);
@@ -139,15 +182,87 @@ var Canvas2DRenderPrimitives = (function () {
         ctx.restore();
     }
 
+    function drawDiameterCotationDown(ctx, xLeft, xRight, y, text, drawingScale, gapMm) {
+        ctx.save();
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#000000';
+        ctx.lineWidth = 0.15 / drawingScale;
+        var aSize = 2.0 / drawingScale;
+        var arrowGapY = 2.5 / drawingScale;
+        var gap = ((gapMm != null && isFinite(gapMm)) ? gapMm : 14) / drawingScale;
+        var yDim = y - gap;
+        var labelGap = 2 / drawingScale;
+
+        function drawArrow(ax, ay, angle) {
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(ax - aSize * Math.cos(angle - Math.PI / 10), ay - aSize * Math.sin(angle - Math.PI / 10));
+            ctx.lineTo(ax - aSize * Math.cos(angle + Math.PI / 10), ay - aSize * Math.sin(angle + Math.PI / 10));
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(xLeft, y - arrowGapY);
+        ctx.lineTo(xLeft, yDim);
+        ctx.moveTo(xRight, y - arrowGapY);
+        ctx.lineTo(xRight, yDim);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(xLeft + aSize, yDim);
+        ctx.lineTo(xRight - aSize, yDim);
+        ctx.stroke();
+        drawArrow(xLeft, yDim, Math.PI);
+        drawArrow(xRight, yDim, 0);
+
+        var labelX = (xLeft + xRight) / 2;
+        var labelY = yDim + labelGap;
+        ctx.save();
+        ctx.translate(labelX, labelY);
+        ctx.scale(1, -1);
+        ctx.font = (3 / drawingScale) + 'px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        var txt = String(text);
+        var textWidth = ctx.measureText(txt).width;
+        var textHeight = 4 / drawingScale;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-textWidth / 2 - 0.5 / drawingScale, -textHeight / 2, textWidth + 1 / drawingScale, textHeight);
+        ctx.fillStyle = '#000000';
+        ctx.fillText(txt, 0, 0);
+        ctx.restore();
+        ctx.restore();
+    }
+
     function drawDiameterCotationRight(ctx, xLeft, xRight, y, text, drawingScale) {
         ctx.save();
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = '#000000';
         ctx.lineWidth = 0.15 / drawingScale;
+        var aSize = 2.0 / drawingScale;
+        var arrowGapX = 2.5 / drawingScale;
         var offsetX = 10 / drawingScale;
         var tick = 3 / drawingScale;
         var labelX = xRight + offsetX;
         var labelY = y;
+
+        function drawArrow(ax, ay, angle) {
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(ax - aSize * Math.cos(angle - Math.PI / 10), ay - aSize * Math.sin(angle - Math.PI / 10));
+            ctx.lineTo(ax - aSize * Math.cos(angle + Math.PI / 10), ay - aSize * Math.sin(angle + Math.PI / 10));
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(xLeft - arrowGapX, y);
+        ctx.lineTo(xLeft, y);
+        ctx.moveTo(xRight + arrowGapX, y);
+        ctx.lineTo(xRight, y);
+        ctx.stroke();
+        drawArrow(xLeft, y, 0);
+        drawArrow(xRight, y, Math.PI);
+
         ctx.beginPath();
         ctx.moveTo(xRight, y);
         ctx.lineTo(labelX - tick, y);
@@ -170,11 +285,14 @@ var Canvas2DRenderPrimitives = (function () {
     }
 
     return {
+        applyModelStroke: applyModelStroke,
+        applyPixelStroke: applyPixelStroke,
         drawRattachementCalloutRight: drawRattachementCalloutRight,
         drawSymmetricProfile: drawSymmetricProfile,
         drawSectionLevelLines: drawSectionLevelLines,
         drawBagueNeckLinks: drawBagueNeckLinks,
         drawCotation: drawCotation,
-        drawDiameterCotationRight: drawDiameterCotationRight
+        drawDiameterCotationRight: drawDiameterCotationRight,
+        drawDiameterCotationDown: drawDiameterCotationDown
     };
 })();

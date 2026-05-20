@@ -6,7 +6,7 @@ var Plans2DPaper = (function () {
 
     function getDefaultFormat() {
         if (typeof Plans2DRules !== 'undefined' && Plans2DRules.DEFAULT_PAPER_FORMAT) return Plans2DRules.DEFAULT_PAPER_FORMAT;
-        return 'A4_P';
+        return 'A2_P';
     }
 
     function getSelectedFormat() {

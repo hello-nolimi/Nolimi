@@ -2,6 +2,137 @@
 // STORAGE — Sauvegarde et chargement projet (JSON)
 // ==========================================
 
+var WorkspaceAutosave = (function () {
+    var AUTOSAVE_KEY = 'nolimi-workspace-v1';
+    var AUTOSAVE_INTERVAL_MS = 45000;
+    var DEBOUNCE_MS = 1500;
+    var pendingRestore = null;
+    var saveTimer = null;
+    var intervalId = null;
+    var listenersBound = false;
+    var isApplyingRestore = false;
+
+    function collectProjectInputs() {
+        var projectData = {};
+        var inputs = document.querySelectorAll('#Panel-gauche input, #Panel-gauche select, #Panel-gauche textarea');
+        inputs.forEach(function (input) {
+            if (!input.id || input.type === 'file') return;
+            projectData[input.id] = (input.type === 'checkbox') ? input.checked : input.value;
+        });
+        return projectData;
+    }
+
+    function collectPayload() {
+        var payload = {
+            version: 1,
+            savedAt: Date.now(),
+            inputs: collectProjectInputs()
+        };
+        if (typeof SectionsState !== 'undefined' && SectionsState.getState) {
+            payload.sectionsState = SectionsState.getState();
+        }
+        if (typeof NavigationState !== 'undefined' && NavigationState.getState) {
+            payload.navigationState = NavigationState.getState();
+        }
+        if (typeof window !== 'undefined' && window.displayOptions) {
+            payload.displayOptions = window.displayOptions;
+        }
+        return payload;
+    }
+
+    function saveNow() {
+        if (isApplyingRestore) return;
+        try {
+            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(collectPayload()));
+        } catch (err) {
+            console.warn('Autosave localStorage indisponible', err);
+        }
+    }
+
+    function scheduleSave() {
+        if (isApplyingRestore) return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveNow, DEBOUNCE_MS);
+    }
+
+    function clear() {
+        try {
+            localStorage.removeItem(AUTOSAVE_KEY);
+        } catch (e) { /* ignore */ }
+    }
+
+    function prepareRestoreFromStorage() {
+        pendingRestore = null;
+        try {
+            var raw = localStorage.getItem(AUTOSAVE_KEY);
+            if (!raw) return;
+            pendingRestore = JSON.parse(raw);
+            if (pendingRestore && pendingRestore.sectionsState && typeof SectionsState !== 'undefined' && SectionsState.setState) {
+                SectionsState.setState(pendingRestore.sectionsState);
+            }
+        } catch (err) {
+            console.warn('Autosave corrompu, ignoré', err);
+            pendingRestore = null;
+        }
+    }
+
+    function applyInputValues(inputs) {
+        if (!inputs) return;
+        for (var id in inputs) {
+            if (!Object.prototype.hasOwnProperty.call(inputs, id)) continue;
+            var el = document.getElementById(id);
+            if (!el) continue;
+            if (el.type === 'checkbox') el.checked = !!inputs[id];
+            else el.value = inputs[id];
+        }
+    }
+
+    function applyRestoredValues() {
+        if (!pendingRestore) return;
+        isApplyingRestore = true;
+        try {
+            applyInputValues(pendingRestore.inputs);
+            if (pendingRestore.navigationState && typeof NavigationState !== 'undefined' && NavigationState.patch) {
+                NavigationState.patch(pendingRestore.navigationState);
+            }
+            if (pendingRestore.displayOptions && typeof window !== 'undefined') {
+                window.displayOptions = pendingRestore.displayOptions;
+            }
+            if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) UIControls.syncAllRangeSliders();
+            if (typeof SceneSetup3D !== 'undefined' && SceneSetup3D.applyDisplayOptions) SceneSetup3D.applyDisplayOptions();
+            if (typeof Validator !== 'undefined' && Validator.applyAllUserConstraints) Validator.applyAllUserConstraints();
+        } finally {
+            pendingRestore = null;
+            isApplyingRestore = false;
+        }
+    }
+
+    function bindListeners() {
+        if (listenersBound) return;
+        listenersBound = true;
+        var panel = document.getElementById('Panel-gauche');
+        if (panel) {
+            panel.addEventListener('input', scheduleSave);
+            panel.addEventListener('change', scheduleSave);
+        }
+        window.addEventListener('beforeunload', saveNow);
+        intervalId = setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
+    }
+
+    function init() {
+        bindListeners();
+    }
+
+    return {
+        prepareRestoreFromStorage: prepareRestoreFromStorage,
+        applyRestoredValues: applyRestoredValues,
+        scheduleSave: scheduleSave,
+        saveNow: saveNow,
+        clear: clear,
+        init: init
+    };
+})();
+
 var btnOpenProject = document.getElementById('btn-open-project');
 var btnOpenWorkspace = document.getElementById('btn-open-workspace');
 var fileLoader = document.getElementById('file-loader');
@@ -35,6 +166,7 @@ function loadProjectData(jsonString) {
             }
             if (typeof updateBouteille === 'function') updateBouteille();
             if (typeof draw2D === 'function' && viewport2DEl && !viewport2DEl.classList.contains('hidden')) draw2D();
+            if (typeof WorkspaceAutosave !== 'undefined') WorkspaceAutosave.saveNow();
         }, 50);
     } catch (err) {
         alert("Erreur : Le fichier de sauvegarde n'est pas valide.");
@@ -129,3 +261,5 @@ async function saveProject(isSaveAs) {
 
 if (btnSave) btnSave.addEventListener('click', function () { saveProject(false); });
 if (btnSaveAs) btnSaveAs.addEventListener('click', function () { saveProject(true); });
+
+if (typeof WorkspaceAutosave !== 'undefined') WorkspaceAutosave.init();

@@ -19,7 +19,8 @@ var Plans2DRules = (function () {
             A2_P: { w: 420, h: 594 },
             A2_L: { w: 594, h: 420 }
         },
-        DEFAULT_PAPER_FORMAT: 'A4_P',
+        DEFAULT_PAPER_FORMAT: 'A2_P',
+        DEFAULT_DRAWING_SCALE: '1:1',
         DRAW_STYLE: {
             page: {
                 margin: 10,
@@ -27,7 +28,10 @@ var Plans2DRules = (function () {
                 shadow: { color: 'rgba(0, 0, 0, 0.2)', blur: 12, offsetX: 0, offsetY: 0 }
             },
             mainView: {
-                liftY: 20
+                liftY: 20,
+                strokeVisibleMm: 0.6,
+                strokeHiddenMm: 0.25,
+                hiddenDashMm: [6, 3]
             },
             cartouche: {
                 referenceFormat: 'A4_P',

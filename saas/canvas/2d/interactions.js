@@ -10,9 +10,16 @@ var Canvas2DInteractions = (function () {
         var dragging = false;
         var lastMouse = { x: 0, y: 0 };
 
-        window.addEventListener('resize', function () {
+        function onViewportResize() {
             if (!container.classList.contains('hidden')) resize();
-        });
+        }
+
+        window.addEventListener('resize', onViewportResize);
+
+        if (typeof ResizeObserver !== 'undefined') {
+            var resizeObserver = new ResizeObserver(onViewportResize);
+            resizeObserver.observe(container);
+        }
 
         var observer = new MutationObserver(function () {
             if (!container.classList.contains('hidden')) setTimeout(resize, 20);

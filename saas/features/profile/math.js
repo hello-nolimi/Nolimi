@@ -344,6 +344,77 @@ var ProfileMath = (function () {
         };
     }
 
+    /** Rayon méridien (x du profil) à une hauteur y sur un profil tessellé. */
+    function radiusFromTessellatedProfile(profile, y) {
+        if (!profile || !profile.length) return MIN_PROFILE_RADIUS;
+        var nearest = profile[0];
+        var nearestDy = Math.abs(nearest.y - y);
+        for (var i = 0; i < profile.length - 1; i++) {
+            var p0 = profile[i];
+            var p1 = profile[i + 1];
+            var minY = Math.min(p0.y, p1.y);
+            var maxY = Math.max(p0.y, p1.y);
+            var d0 = Math.abs(p0.y - y);
+            if (d0 < nearestDy) {
+                nearestDy = d0;
+                nearest = p0;
+            }
+            if (y < minY || y > maxY) continue;
+            var dy = p1.y - p0.y;
+            if (Math.abs(dy) < 1e-9) return Math.max(MIN_PROFILE_RADIUS, p0.x);
+            var t = (y - p0.y) / dy;
+            return Math.max(MIN_PROFILE_RADIUS, p0.x + (p1.x - p0.x) * t);
+        }
+        return Math.max(MIN_PROFILE_RADIUS, nearest.x);
+    }
+
+    /**
+     * Échantillonneur du rayon extérieur (y, theta) incluant courbes de liaison (S, rayon, spline).
+     * Utilisé par les feuilles 3D et la gravure pour coller au corps réel.
+     */
+    function createExteriorRadiusSampler(sectionsData) {
+        sectionsData = sectionsData || {};
+        var sections = sectionsData.sections || [];
+        var canUseProfile = K && sections.length >= 2
+            && sectionsData.edgeTypes && sectionsData.rhos
+            && typeof LiaisonsFeature !== 'undefined' && LiaisonsFeature.buildProfileCurves;
+        var cache = {};
+
+        function radiusFromSections(y, theta) {
+            if (!sections.length) return MIN_PROFILE_RADIUS;
+            var sec = sections[0];
+            for (var i = 0; i < sections.length - 1; i++) {
+                if (y >= sections[i].H && y <= sections[i + 1].H) {
+                    var t = (sections[i + 1].H - sections[i].H) < 1e-9
+                        ? 0
+                        : (y - sections[i].H) / (sections[i + 1].H - sections[i].H);
+                    var a = sections[i].a + t * (sections[i + 1].a - sections[i].a);
+                    var b = sections[i].b + t * (sections[i + 1].b - sections[i].b);
+                    var shape = sections[i + 1].shape || sections[i].shape || DEFAULT_SHAPE;
+                    var carre = sections[i + 1].carreNiveau != null ? sections[i + 1].carreNiveau : (sections[i].carreNiveau || DEFAULT_CARRE_NIVEAU);
+                    return getSectionRadiusAtAngle(a, b, shape, carre, theta);
+                }
+                if (y < sections[i].H) break;
+                sec = sections[i + 1];
+            }
+            var shapeLast = sec.shape || DEFAULT_SHAPE;
+            var carreLast = typeof sec.carreNiveau === 'number' ? sec.carreNiveau : DEFAULT_CARRE_NIVEAU;
+            return getSectionRadiusAtAngle(sec.a, sec.b, shapeLast, carreLast, theta);
+        }
+
+        return function (y, theta) {
+            if (!canUseProfile) return radiusFromSections(y, theta);
+            var key = String(Math.round(theta * 10000) / 10000);
+            if (!cache[key]) {
+                var entities = buildExteriorProfile(theta, sectionsData);
+                cache[key] = K.tessellateProfile(entities, 48) || [];
+            }
+            var profile = cache[key];
+            if (!profile.length) return radiusFromSections(y, theta);
+            return radiusFromTessellatedProfile(profile, y);
+        };
+    }
+
     return {
         getSectionRadiusAtAngle: getSectionRadiusAtAngle,
         getSectionRingPoints: getSectionRingPoints,
@@ -352,6 +423,7 @@ var ProfileMath = (function () {
         buildInteriorProfile: buildInteriorProfile,
         getRuledSurfacePoint: getRuledSurfacePoint,
         getRadialBandPoint: getRadialBandPoint,
-        getConeToApexPoint: getConeToApexPoint
+        getConeToApexPoint: getConeToApexPoint,
+        createExteriorRadiusSampler: createExteriorRadiusSampler
     };
 })();

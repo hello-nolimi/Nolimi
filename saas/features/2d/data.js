@@ -7,6 +7,23 @@ var Plans2DData = (function () {
         return Number.isFinite(v) ? v : fallback;
     }
 
+    function getMoldJointProfileTheta() {
+        if (typeof BottleView3D !== 'undefined' && BottleView3D.MOLD_JOINT_PROFILE_THETA != null) {
+            return BottleView3D.MOLD_JOINT_PROFILE_THETA;
+        }
+        return 0;
+    }
+
+    function getHalfWidthAtMoldJoint(L, P) {
+        var a = Math.max(0, (L || 0) / 2);
+        var b = Math.max(0, (Number.isFinite(P) ? P : L) / 2);
+        var theta = getMoldJointProfileTheta();
+        if (typeof BottleMaths !== 'undefined' && BottleMaths.getSectionRadiusAtAngle) {
+            return Math.max(0, BottleMaths.getSectionRadiusAtAngle(a, b, 'ovale', 0, theta));
+        }
+        return a;
+    }
+
     function getIndexedHeights(prefix) {
         if (typeof Plans2DMath !== 'undefined' && Plans2DMath.getIndexedHeights) return Plans2DMath.getIndexedHeights(prefix);
         var inputs = document.querySelectorAll('input[id^="' + prefix + '"][id$="-h"]');
@@ -21,17 +38,30 @@ var Plans2DData = (function () {
         return out.filter(function (v, i) { return i === 0 || v !== out[i - 1]; });
     }
 
+    function getPiqureBase2D() {
+        var L = getNumericValue('sp-L', 55);
+        var P = getNumericValue('sp-P', L);
+        return {
+            y: getNumericValue('s1-h', 0),
+            L: L,
+            P: P,
+            halfWidth: getHalfWidthAtMoldJoint(L, P)
+        };
+    }
+
     function getPiqureProfile2D() {
         var points = [];
         var s1h = getNumericValue('s1-h', 0);
         var spL = getNumericValue('sp-L', 55);
-        points.push({ x: Math.max(0, spL / 2), y: s1h });
+        var spP = getNumericValue('sp-P', spL);
+        points.push({ x: getHalfWidthAtMoldJoint(spL, spP), y: s1h });
         var spIdxs = getIndexedHeights('sp');
         spIdxs.forEach(function (k) {
             var h = getNumericValue('sp' + k + '-h', null);
             var L = getNumericValue('sp' + k + '-L', 40);
+            var P = getNumericValue('sp' + k + '-P', L);
             if (h == null) return;
-            points.push({ x: Math.max(0, L / 2), y: h });
+            points.push({ x: getHalfWidthAtMoldJoint(L, P), y: h });
         });
         var rp3h = getNumericValue('rp3-h', null);
         if (rp3h != null) points.push({ x: 0, y: rp3h });
@@ -45,8 +75,9 @@ var Plans2DData = (function () {
         sbIdxs.forEach(function (k) {
             var h = getNumericValue('sb' + k + '-h', null);
             var L = getNumericValue('sb' + k + '-L', null);
+            var P = getNumericValue('sb' + k + '-P', L);
             if (h == null || L == null) return;
-            points.push({ x: Math.max(0, L / 2), y: h });
+            points.push({ x: getHalfWidthAtMoldJoint(L, P), y: h });
         });
         points.sort(function (a, b) { return a.y - b.y; });
         return points;
@@ -58,8 +89,9 @@ var Plans2DData = (function () {
         sIdxs.forEach(function (k) {
             var h = getNumericValue('s' + k + '-h', null);
             var L = getNumericValue('s' + k + '-L', null);
+            var P = getNumericValue('s' + k + '-P', null);
             if (h == null || L == null) return;
-            sections.push({ y: h, x: Math.max(0, L / 2) });
+            sections.push({ y: h, x: getHalfWidthAtMoldJoint(L, P), L: L, P: P });
         });
         sections.sort(function (a, b) { return a.y - b.y; });
         return sections;
@@ -89,6 +121,7 @@ var Plans2DData = (function () {
     }
 
     return {
+        getPiqureBase2D: getPiqureBase2D,
         getPiqureProfile2D: getPiqureProfile2D,
         getBagueProfile2D: getBagueProfile2D,
         getMainSections2D: getMainSections2D,

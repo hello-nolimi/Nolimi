@@ -26,8 +26,19 @@ var SectionsState = (function () {
         return state;
     }
 
+    function setState(next) {
+        if (!next) return state;
+        try {
+            state = JSON.parse(JSON.stringify(next));
+        } catch (e) {
+            state = next;
+        }
+        return state;
+    }
+
     return {
         getState: getState,
-        resetState: resetState
+        resetState: resetState,
+        setState: setState
     };
 })();

@@ -10,6 +10,8 @@ console.log("Atelier Bouteille chargé avec succès.");
                 isLogicielInit = true;
             }
             if (typeof updateBouteille === 'function') updateBouteille();
+            if (typeof draw2D === 'function') draw2D();
+            if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.saveNow) WorkspaceAutosave.saveNow();
         }, 50);
     }
 })();

@@ -19,6 +19,7 @@ var UIEvents = (function () {
             btnNewProject.dataset.navBound = '1';
             btnNewProject.addEventListener('click', function () {
                 currentFileHandle = null;
+                if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.clear) WorkspaceAutosave.clear();
                 pageMenu.classList.add('hidden');
                 pageBouteille.classList.remove('hidden');
                 setTimeout(function () {
@@ -35,6 +36,7 @@ var UIEvents = (function () {
             btnBackMenu.dataset.navBound = '1';
             btnBackMenu.addEventListener('click', function () {
                 if (fichierDropdown) fichierDropdown.classList.add('hidden');
+                if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.saveNow) WorkspaceAutosave.saveNow();
                 window.location.href = '../website/index.html';
             });
         }

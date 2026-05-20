@@ -8,6 +8,8 @@ var BottleView3D = (function () {
     var N_SEGMENTS = tess.N_SEGMENTS || 128;
     var N_FEUILLE_V = tess.N_FEUILLE_V || 32;
     var MERIDIAN_RESOLUTION = tess.MERIDIAN_RESOLUTION || 64;
+    /** Méridien du profil 2D (vue de face) = joint de moule en 3D (axe X rouge, 0°). */
+    var MOLD_JOINT_PROFILE_THETA = 0;
     var RING_COLOR_NORMAL = ringRules.COLOR_NORMAL || 0x000000;
     var RING_COLOR_HIGHLIGHT = ringRules.COLOR_HIGHLIGHT || 0x0066cc;
 
@@ -28,6 +30,42 @@ var BottleView3D = (function () {
     function disposeAllLabelMeshes() {
         var ids = Object.keys(bottleLabelMeshes);
         for (var i = 0; i < ids.length; i++) disposeLabelMeshById(ids[i]);
+    }
+
+    /** Libère géométries / matériaux Three.js pour éviter la saturation GPU (context lost). */
+    function disposeThreeHierarchy(root) {
+        if (!root) return;
+        root.traverse(function (node) {
+            if (node.geometry) node.geometry.dispose();
+            if (!node.material) return;
+            var mats = Array.isArray(node.material) ? node.material : [node.material];
+            for (var mi = 0; mi < mats.length; mi++) {
+                var mat = mats[mi];
+                if (!mat) continue;
+                if (mat.map && mat.map.dispose) mat.map.dispose();
+                if (mat.dispose) mat.dispose();
+            }
+        });
+    }
+
+    function detachPersistedFromSectionRing() {
+        if (!sectionRingGroup) return;
+        if (bottleGroup && bottleGroup.parent === sectionRingGroup) sectionRingGroup.remove(bottleGroup);
+        var labelIds = Object.keys(bottleLabelMeshes);
+        for (var li = 0; li < labelIds.length; li++) {
+            var lm = bottleLabelMeshes[labelIds[li]];
+            if (lm && lm.parent === sectionRingGroup) sectionRingGroup.remove(lm);
+        }
+    }
+
+    function replaceSectionRingGroup() {
+        if (sectionRingGroup) {
+            if (scene) scene.remove(sectionRingGroup);
+            detachPersistedFromSectionRing();
+            disposeThreeHierarchy(sectionRingGroup);
+            sectionRingGroup = null;
+        }
+        sectionRingGroup = new THREE.Group();
     }
 
     function buildBottleBodySignature(sectionsData) {
@@ -350,6 +388,65 @@ var BottleView3D = (function () {
         return new THREE.Mesh(geom, mat);
     }
 
+    var NECK_FEUILLE_SURFACE_OFFSET = 0.02;
+
+    function getNeckToBaguePoint(sPrev, sTop, bague1, sectionsData, radiusAt, u, v) {
+        var yStart = (sPrev && isFinite(sPrev.H)) ? sPrev.H : sTop.H;
+        var yEnd = bague1.H;
+        if (yEnd < yStart) yStart = yEnd;
+        var y = yStart + v * (yEnd - yStart);
+        var c = Math.cos(u);
+        var s = Math.sin(u);
+
+        if (y <= sTop.H + 1e-6) {
+            var r = radiusAt(y, u) + NECK_FEUILLE_SURFACE_OFFSET;
+            return { x: r * c, y: y, z: r * s };
+        }
+
+        var rRim = radiusAt(sTop.H, u) + NECK_FEUILLE_SURFACE_OFFSET;
+        var pRim = { x: rRim * c, y: sTop.H, z: rRim * s };
+        var pBague = BottleMaths.getRuledSurfacePoint(sTop, bague1, u, 1);
+        var span = yEnd - sTop.H;
+        var t = span > 1e-6 ? (y - sTop.H) / span : 1;
+        return {
+            x: (1 - t) * pRim.x + t * pBague.x,
+            y: y,
+            z: (1 - t) * pRim.z + t * pBague.z
+        };
+    }
+
+    /**
+     * Feuille col → bague conforme au profil extérieur (courbe S, rayon, ovale L≠P).
+     * Évite que le corps dépasse et « coupe » la feuille au-dessus de l'épaule/col.
+     */
+    function buildNeckToBagueFeuille(sPrev, sTop, bague1, sectionsData, color) {
+        if (!sTop || !bague1 || typeof BottleMaths === 'undefined' || typeof THREE === 'undefined') return null;
+        var radiusAt = (BottleMaths.createExteriorRadiusSampler)
+            ? BottleMaths.createExteriorRadiusSampler(sectionsData)
+            : null;
+        if (!radiusAt) return buildPiqureBasHautFeuille(sTop, bague1);
+
+        var nu = N_SEGMENTS;
+        var nv = N_FEUILLE_V;
+        var vertices = [];
+        var indices = [];
+        for (var i = 0; i < nu; i++) {
+            var u = (i / nu) * 2 * Math.PI;
+            for (var j = 0; j <= nv; j++) {
+                var v = j / nv;
+                var p = getNeckToBaguePoint(sPrev, sTop, bague1, sectionsData, radiusAt, u, v);
+                vertices.push(p.x, p.y, p.z);
+            }
+        }
+        addRuledSurfaceIndicesClosedU(indices, nu, nv, nv + 1);
+        var geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.setIndex(indices);
+        geom.computeVertexNormals();
+        var mat = BottleMaterials.getGlassMaterial(color);
+        return new THREE.Mesh(geom, mat);
+    }
+
     function buildPiqureFeuilleVersAxe(section, topH) {
         var nu = N_SEGMENTS;
         var nv = N_FEUILLE_V;
@@ -553,8 +650,7 @@ var BottleView3D = (function () {
         var sections = sectionsData.sections;
         var activeSection = typeof window.activeSectionIndex !== 'undefined' ? window.activeSectionIndex : 0;
 
-        if (sectionRingGroup) scene.remove(sectionRingGroup);
-        sectionRingGroup = new THREE.Group();
+        replaceSectionRingGroup();
 
         if (!bottleGroup) {
             var baseMat = (typeof BottleMaterials !== 'undefined' && BottleMaterials.getBottleBodyMaterial)
@@ -675,12 +771,11 @@ var BottleView3D = (function () {
             addSectionRing(sectionRingGroup, sections[i], activeSection === i + 1, false);
         }
 
-        // Joint de moule visuel sur l'axe rouge (deux demi-joints opposes).
+        // Joint de moule visuel sur l'axe rouge X (deux demi-joints opposes, 0° et 180°).
         var showMoldJoint = !(typeof window !== 'undefined' && window.displayOptions && window.displayOptions.showMoldJoint === false);
         if (showMoldJoint) {
-            // Axe bleu (Z) -> meridiens a 90deg et 270deg.
-            var moldLineA = buildMoldJointLine(Math.PI / 2, sectionsData);
-            var moldLineB = buildMoldJointLine((3 * Math.PI) / 2, sectionsData);
+            var moldLineA = buildMoldJointLine(MOLD_JOINT_PROFILE_THETA, sectionsData);
+            var moldLineB = buildMoldJointLine(MOLD_JOINT_PROFILE_THETA + Math.PI, sectionsData);
             if (moldLineA) sectionRingGroup.add(moldLineA);
             if (moldLineB) sectionRingGroup.add(moldLineB);
         }
@@ -797,9 +892,10 @@ var BottleView3D = (function () {
         }
         var bague1 = bagueSections.length ? bagueSections[0] : getBague1SectionFromPanel();
         var sTop = sections && sections.length ? sections[sections.length - 1] : null;
+        var sPrev = sections && sections.length >= 2 ? sections[sections.length - 2] : null;
         // bague1 ring déjà ajouté dans la boucle si présent
         if (sTop) {
-            var feuilleColBague = buildPiqureBasHautFeuille(sTop, bague1);
+            var feuilleColBague = buildNeckToBagueFeuille(sPrev, sTop, bague1, sectionsData, BottleMaterials.DEFAULT_GLASS_COLOR);
             feuilleColBague.userData.isPiqure = false;
             enableMeshShadows(feuilleColBague);
             sectionRingGroup.add(feuilleColBague);
@@ -870,14 +966,14 @@ var BottleView3D = (function () {
     }
 
     /**
-     * Retourne les points du profil 2D (méridien face) pour la vue plan.
+     * Retourne les points du profil 2D (méridien au joint de moule) pour la vue plan.
      * Utilisé par viewer2d.js pour dessiner le profil avec cotations.
      */
     function getProfilePointsFor2D() {
         var sectionsData = getSectionsDataFromPanel();
         if (!sectionsData || !sectionsData.sections || sectionsData.sections.length < 2) return [];
         var entities = (typeof BottleMaths !== 'undefined' && BottleMaths.buildExteriorProfile)
-            ? BottleMaths.buildExteriorProfile(0, sectionsData)
+            ? BottleMaths.buildExteriorProfile(MOLD_JOINT_PROFILE_THETA, sectionsData)
             : [];
         if (!entities || entities.length === 0) return [];
         return (typeof GeomKernel !== 'undefined' && GeomKernel.tessellateProfile)
@@ -887,17 +983,24 @@ var BottleView3D = (function () {
 
     function dispose() {
         if (sectionRingGroup && scene) scene.remove(sectionRingGroup);
-        if (bottleInnerGlassMesh && bottleInnerGlassMesh.geometry) bottleInnerGlassMesh.geometry.dispose();
-        if (bottleInnerGlassMesh && bottleInnerGlassMesh.material && bottleInnerGlassMesh.material.dispose) bottleInnerGlassMesh.material.dispose();
+        detachPersistedFromSectionRing();
+        disposeThreeHierarchy(sectionRingGroup);
+        if (bottleGroup) {
+            disposeThreeHierarchy(bottleGroup);
+            bottleGroup = null;
+        }
+        if (bottleInnerGlassMesh) {
+            disposeThreeHierarchy(bottleInnerGlassMesh);
+            bottleInnerGlassMesh = null;
+        }
         disposeAllLabelMeshes();
-        bottleInnerGlassMesh = null;
         sectionRingGroup = null;
-        bottleGroup = null;
     }
 
     return {
         updateView: updateView,
         getProfilePointsFor2D: getProfilePointsFor2D,
+        MOLD_JOINT_PROFILE_THETA: MOLD_JOINT_PROFILE_THETA,
         applyViewOpacity: applyViewOpacity,
         dispose: dispose
     };
