@@ -1,4 +1,4 @@
-// Auth Supabase : connexion, garde de session, déconnexion.
+// Auth Supabase uniquement (aucun identifiant en dur dans le code).
 var NolimiAuth = (function () {
     var client = null;
 
@@ -40,7 +40,6 @@ var NolimiAuth = (function () {
     function requireSession() {
         var sb = getClient();
         if (!sb) {
-            console.error('Supabase non configuré (url, anonKey, SDK).');
             redirectToLogin();
             return Promise.reject(new Error('supabase_not_configured'));
         }
@@ -57,7 +56,10 @@ var NolimiAuth = (function () {
         if (!sb) {
             return Promise.resolve({ error: { message: 'Configuration Supabase manquante.' } });
         }
-        return sb.auth.signInWithPassword({ email: email, password: password });
+        return sb.auth.signInWithPassword({
+            email: String(email || '').trim(),
+            password: String(password || '')
+        });
     }
 
     function signOut() {

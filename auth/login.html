@@ -111,12 +111,12 @@
 
                 NolimiAuth.signInWithPassword(email, password).then(function (result) {
                     if (result.error) {
-                        errEl.textContent = result.error.message || 'Email ou mot de passe incorrect.';
+                        errEl.textContent = result.error.message;
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Connexion';
                         return;
                     }
-                    window.location.href = NolimiAuth.getAppUrl();
+                    window.location.replace(NolimiAuth.getAppUrl());
                 }).catch(function () {
                     errEl.textContent = 'Erreur réseau. Réessayez.';
                     submitBtn.disabled = false;
