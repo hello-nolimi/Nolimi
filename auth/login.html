@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saver3D - Connexion</title>
+    <title>Nolimi - Connexion</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
@@ -47,6 +47,7 @@
             border-radius: 6px;
         }
         .form-login button:hover { background: #333; }
+        .form-login button:disabled { opacity: 0.6; cursor: wait; }
         .error-msg {
             color: #c00;
             font-size: 0.9rem;
@@ -67,31 +68,62 @@
         }
         .btn-retour:hover { background: #f5f5f5; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../saas/config/supabase.config.js"></script>
+    <script src="../saas/lib/auth.js"></script>
 </head>
 <body>
     <a href="../website/index.html" class="btn-retour">← Retour</a>
     <main class="centre">
-        <form class="form-login" action="../saas/app.html" method="get">
+        <form class="form-login" id="form-login">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="votre@email.com" required>
-            <label for="licence">Mot de passe</label>
-            <input type="password" id="licence" name="licence" placeholder="••••••••" required>
+            <input type="email" id="email" name="email" placeholder="votre@email.com" required autocomplete="email">
+            <label for="password">Mot de passe</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
             <div id="error-msg" class="error-msg" aria-live="polite"></div>
-            <button type="submit">Connexion</button>
+            <button type="submit" id="btn-submit">Connexion</button>
         </form>
     </main>
     <script>
-        document.querySelector('.form-login').addEventListener('submit', function (e) {
-            e.preventDefault();
-            var email = document.getElementById('email').value.trim();
-            var licence = document.getElementById('licence').value;
+        (function () {
+            var form = document.getElementById('form-login');
             var errEl = document.getElementById('error-msg');
-            if (email === 'axel@gmail.com' && licence === 'axel') {
-                window.location.href = '../saas/app.html?start=1';
-            } else {
-                errEl.textContent = 'Email ou mot de passe incorrect.';
+            var submitBtn = document.getElementById('btn-submit');
+
+            if (typeof NolimiAuth !== 'undefined' && NolimiAuth.redirectIfAlreadyLoggedIn) {
+                NolimiAuth.redirectIfAlreadyLoggedIn();
             }
-        });
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var email = document.getElementById('email').value.trim();
+                var password = document.getElementById('password').value;
+                errEl.textContent = '';
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Connexion...';
+
+                if (typeof NolimiAuth === 'undefined' || !NolimiAuth.signInWithPassword) {
+                    errEl.textContent = 'Service de connexion indisponible.';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Connexion';
+                    return;
+                }
+
+                NolimiAuth.signInWithPassword(email, password).then(function (result) {
+                    if (result.error) {
+                        errEl.textContent = result.error.message || 'Email ou mot de passe incorrect.';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Connexion';
+                        return;
+                    }
+                    window.location.href = NolimiAuth.getAppUrl();
+                }).catch(function () {
+                    errEl.textContent = 'Erreur réseau. Réessayez.';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Connexion';
+                });
+            });
+        })();
     </script>
 </body>
 </html>
