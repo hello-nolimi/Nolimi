@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nolimi</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/splash.css">
+</head>
+<body class="splash">
+    <main class="splash-main">
+        <img
+            src="../assets/brand/nolimi-logo.png"
+            alt="Nolimi"
+            class="splash-logo"
+            width="1024"
+            height="1024"
+            decoding="async"
+        >
+    </main>
+    <script>
+        (function () {
+            var target = "./index.html";
+            var displayMs = 1400;
+            var fadeMs = 450;
+
+            function goToSite() {
+                document.body.classList.add("splash--exit");
+                window.setTimeout(function () {
+                    window.location.replace(target);
+                }, fadeMs);
+            }
+
+            window.setTimeout(goToSite, displayMs);
+        })();
+    </script>
+</body>
+</html>

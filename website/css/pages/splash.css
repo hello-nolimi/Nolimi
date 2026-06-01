@@ -1,0 +1,62 @@
+body.splash {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nolimi-surface);
+    overflow: hidden;
+}
+
+.splash-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    animation: splash-in 0.55s ease-out both;
+}
+
+.splash-logo {
+    display: block;
+    width: min(42vw, 11rem);
+    height: auto;
+    object-fit: contain;
+}
+
+body.splash--exit .splash-main {
+    animation: splash-out 0.45s ease-in both;
+}
+
+@keyframes splash-in {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes splash-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .splash-main {
+        animation: none;
+    }
+
+    body.splash--exit .splash-main {
+        animation: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+}

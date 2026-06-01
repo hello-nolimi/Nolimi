@@ -1,17 +1,16 @@
-/* Accueil — mise en page éditoriale, bandeau mots en bas du premier écran */
-
 .page--home {
-    --home-ink: #0a0a0b;
-    --home-muted: #6b6b73;
-    --home-line: rgba(0, 0, 0, 0.07);
-    --home-accent: #5cb3ff;
-    background: #f7f7f8;
-    color: var(--home-ink);
-    -webkit-font-smoothing: antialiased;
+    --home-ink: var(--nolimi-ink);
+    --home-muted: var(--nolimi-text-muted);
+    --home-accent: var(--nolimi-accent);
 }
 
 .page--home .panel {
-    background: #fff;
+    background: var(--nolimi-surface);
+}
+
+body.page--home {
+    display: flex;
+    flex-direction: column;
 }
 
 .page-main--home {
@@ -43,15 +42,6 @@
     padding: clamp(5.5rem, 12vh, 7rem) 1.75rem 2rem;
 }
 
-.home-kicker {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--home-muted);
-    margin-bottom: 1.25rem;
-}
-
 .home-hero h1 {
     font-size: clamp(2.15rem, 6vw, 3.35rem);
     font-weight: 600;
@@ -65,8 +55,6 @@
     line-height: 1.65;
     color: var(--home-muted);
     max-width: 36rem;
-    margin-left: auto;
-    margin-right: auto;
     margin-bottom: 2.25rem;
 }
 
@@ -98,62 +86,6 @@
 }
 
 .home-cta--primary:hover {
-    background: #4aa6f7;
-    border-color: #4aa6f7;
-}
-
-.home-cta--ghost {
-    background: transparent;
-    color: var(--home-ink);
-    border: 1px solid var(--home-line);
-}
-
-.home-cta--ghost:hover {
-    border-color: rgba(0, 0, 0, 0.18);
-    background: rgba(0, 0, 0, 0.03);
-}
-
-/* Bandeau défilant — bas du premier écran */
-.home-marquee-wrap {
-    flex-shrink: 0;
-    width: 100%;
-    overflow: hidden;
-    border-top: 1px solid var(--home-line);
-    background: #fff;
-}
-
-.home-marquee {
-    display: flex;
-    gap: 2.75rem;
-    width: max-content;
-    padding: 0.95rem 0;
-    animation: home-marquee-scroll 40s linear infinite;
-    white-space: nowrap;
-}
-
-.home-marquee span {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #9a9aa3;
-}
-
-@keyframes home-marquee-scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .home-marquee {
-        animation: none;
-        justify-content: center;
-        flex-wrap: wrap;
-        width: 100%;
-        max-width: 48rem;
-        margin: 0 auto;
-        padding: 0.85rem 1rem;
-        white-space: normal;
-        row-gap: 0.5rem;
-    }
+    background: var(--nolimi-accent-hover);
+    border-color: var(--nolimi-accent-hover);
 }

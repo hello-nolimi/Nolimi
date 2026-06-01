@@ -3,81 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nolimi — Accueil</title>
+    <title>Nolimi</title>
     <link rel="stylesheet" href="./css/main.css">
     <link rel="stylesheet" href="./css/pages/home.css">
 </head>
 <body class="page page--home">
     <header class="panel">
-        <span class="panel-logo">Nolimi</span>
-        <div class="panel-actions">
-            <nav class="panel-nav">
-                <a href="index.html" data-nav="accueil">Accueil</a>
-                <a href="#" data-nav="fonctionnalites">Fonctionnalité</a>
-                <a href="pages/galerie.html" data-nav="galerie">Galerie</a>
-                <a href="pages/avis.html" data-nav="avis">Avis</a>
-                <a href="pages/licence.html" data-nav="licence">Licence</a>
-            </nav>
-            <a href="../auth/login.html" class="panel-cta">Accéder au SaaS</a>
-        </div>
+        <a href="index.html" class="panel-logo" aria-label="Nolimi — accueil">
+            <img
+                src="../assets/brand/nolimi-logo-wordmark.jpg"
+                alt=""
+                class="panel-logo__img"
+                width="1024"
+                height="300"
+                decoding="async"
+            >
+        </a>
+        <a href="../auth/login.html" class="panel-cta">Se connecter</a>
     </header>
     <main class="page-main page-main--home" id="accueil">
         <section class="home-hero" aria-labelledby="home-title">
             <div class="home-hero__inner">
-                <p class="home-kicker">Outil SaaS — verre &amp; flacons</p>
-                <h1 id="home-title">Concevez et industrialisez vos bouteilles avec une seule géométrie vivante.</h1>
-                <p class="home-lead">Nolimi relie le design 3D, les plans 2D, les calculs et les livrables techniques : moins de ressaisie, plus de cohérence entre équipes.</p>
+                <h1 id="home-title">Concevez vos bouteilles en quelques clics</h1>
+                <p class="home-lead">Grâce à une conception paramétrique, créez vos bouteilles en quelques minutes.</p>
                 <div class="home-actions">
-                    <a href="pages/licence.html" class="home-cta home-cta--primary">Je veux essayer</a>
-                    <a href="pages/galerie.html" class="home-cta home-cta--ghost">Voir la galerie</a>
-                </div>
-            </div>
-            <div class="home-marquee-wrap" aria-hidden="true">
-                <div class="home-marquee">
-                    <span>Rapide</span>
-                    <span>Simple</span>
-                    <span>Précis</span>
-                    <span>3D</span>
-                    <span>Fluide</span>
-                    <span>Moderne</span>
-                    <span>Fiable</span>
-                    <span>Industriel</span>
-                    <span>Intuitif</span>
-                    <span>Automatisé</span>
-                    <span>Collaboratif</span>
-                    <span>Professionnel</span>
-                    <span>Bouteilles</span>
-                    <span>Verrier</span>
-                    <span>Rigoureux</span>
-                    <span>Clair</span>
-                    <span>Cohérent</span>
-                    <span>Réactif</span>
-                    <span>Paramétrique</span>
-                    <span>Essentiel</span>
-                    <span>Rapide</span>
-                    <span>Simple</span>
-                    <span>Précis</span>
-                    <span>3D</span>
-                    <span>Fluide</span>
-                    <span>Moderne</span>
-                    <span>Fiable</span>
-                    <span>Industriel</span>
-                    <span>Intuitif</span>
-                    <span>Automatisé</span>
-                    <span>Collaboratif</span>
-                    <span>Professionnel</span>
-                    <span>Bouteilles</span>
-                    <span>Verrier</span>
-                    <span>Rigoureux</span>
-                    <span>Clair</span>
-                    <span>Cohérent</span>
-                    <span>Réactif</span>
-                    <span>Paramétrique</span>
-                    <span>Essentiel</span>
+                    <a href="../auth/login.html" class="home-cta home-cta--primary">Se connecter</a>
                 </div>
             </div>
         </section>
     </main>
-    <script src="./js/components/navbar.js"></script>
 </body>
 </html>

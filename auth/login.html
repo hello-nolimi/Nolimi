@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nolimi - Connexion</title>
+    <link rel="stylesheet" href="../assets/brand/tokens.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
@@ -24,32 +25,32 @@
         }
         .form-login label {
             font-size: 0.9rem;
-            color: #333;
+            color: var(--nolimi-text);
         }
         .form-login input {
             padding: 0.6rem 0.75rem;
             font-size: 1rem;
-            border: 1px solid #ccc;
+            border: 1px solid var(--nolimi-border);
             border-radius: 6px;
         }
         .form-login input:focus {
             outline: none;
-            border-color: #555;
+            border-color: var(--nolimi-accent);
         }
         .form-login button {
             margin-top: 0.5rem;
             padding: 0.65rem 1.5rem;
             font-size: 1rem;
             cursor: pointer;
-            background: #1a1a1a;
+            background: var(--nolimi-accent);
             color: #fff;
             border: none;
             border-radius: 6px;
         }
-        .form-login button:hover { background: #333; }
+        .form-login button:hover { background: var(--nolimi-accent-hover); }
         .form-login button:disabled { opacity: 0.6; cursor: wait; }
         .error-msg {
-            color: #c00;
+            color: var(--nolimi-danger);
             font-size: 0.9rem;
             margin-top: 0.25rem;
             min-height: 1.4em;
@@ -60,13 +61,13 @@
             left: 1.5rem;
             padding: 0.5rem 1rem;
             font-size: 0.95rem;
-            color: #333;
+            color: var(--nolimi-text);
             text-decoration: none;
-            border: 1px solid #ccc;
+            border: 1px solid var(--nolimi-border);
             border-radius: 6px;
-            background: #fff;
+            background: var(--nolimi-surface);
         }
-        .btn-retour:hover { background: #f5f5f5; }
+        .btn-retour:hover { background: var(--nolimi-bg); }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../saas/config/supabase.config.js"></script>

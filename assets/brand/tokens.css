@@ -1,0 +1,31 @@
+/* Palette Nolimi — partagée site vitrine, auth et SaaS */
+:root {
+    /* Marque */
+    --nolimi-accent: #5cb3ff;
+    --nolimi-accent-hover: #4aa6f7;
+    --nolimi-accent-soft: #f0f7ff;
+    --nolimi-accent-muted: rgba(92, 179, 255, 0.14);
+
+    /* Fonds */
+    --nolimi-bg: #f7f7f8;
+    --nolimi-surface: #ffffff;
+    --nolimi-surface-muted: #f8f8f8;
+    --nolimi-surface-panel: #e6ebf2;
+    --nolimi-surface-workspace: #eaedf2;
+
+    /* Texte */
+    --nolimi-ink: #0a0a0b;
+    --nolimi-text: #333333;
+    --nolimi-text-muted: #6b6b73;
+    --nolimi-text-subtle: #777777;
+
+    /* Bordures & ombres */
+    --nolimi-border: #cccccc;
+    --nolimi-border-subtle: rgba(0, 0, 0, 0.08);
+    --nolimi-shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.06);
+    --nolimi-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    /* États */
+    --nolimi-danger: #c62828;
+    --nolimi-danger-soft: #ffebee;
+}

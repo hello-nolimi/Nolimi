@@ -1,6 +1,6 @@
 .panel {
-    --panel-accent: #5cb3ff;
-    --panel-accent-hover: #4aa6f7;
+    --panel-accent: var(--nolimi-accent);
+    --panel-accent-hover: var(--nolimi-accent-hover);
     position: fixed;
     top: 0;
     left: 0;
@@ -10,134 +10,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #fff;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    background: var(--nolimi-surface);
+    box-shadow: var(--nolimi-shadow-sm);
     z-index: 10;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
 }
 
 .panel-logo {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #000;
+    display: block;
     flex-shrink: 0;
-    cursor: default;
-    user-select: none;
-}
-
-.panel-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin-left: auto;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.panel-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.panel-nav a {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.875rem;
-    color: #8c8c92;
+    line-height: 0;
     text-decoration: none;
-    border-radius: 6px;
-    transition: color 0.25s ease, background 0.25s ease;
 }
 
-.panel-nav a:hover {
-    background: rgba(0, 0, 0, 0.04);
-    color: #5a5a5f;
-}
-
-.panel-nav a.active {
-    color: var(--panel-accent);
-}
-
-.panel-nav a[data-nav="fonctionnalites"].is-open {
-    background: rgba(92, 179, 255, 0.12);
-    color: var(--panel-accent);
-}
-
-.panel-features-menu {
-    position: fixed;
-    left: 0;
-    right: 0;
-    width: 100%;
-    top: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.25rem 0.5rem;
-    padding: 1.25rem 1rem 1.35rem;
-    background: #fff;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    transform: translateY(-10px);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-    z-index: 9;
-}
-
-.panel-features-menu.is-open {
-    transform: translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.panel-features-inner {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(110px, auto));
-    justify-content: center;
-    gap: 0 1rem;
-}
-
-.panel-features-col {
-    min-width: 120px;
-    display: grid;
-    gap: 0.4rem;
-    justify-items: center;
-    align-content: start;
-}
-
-.panel-features-col + .panel-features-col {
-    border-left: 1px solid rgba(0, 0, 0, 0.06);
-    padding-left: 1rem;
-}
-
-.panel-features-menu a,
-.panel-features-placeholder {
-    padding: 0.4rem 0.65rem;
-    color: #5d5d63;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    line-height: 1.2;
-    text-align: center;
-}
-
-.panel-features-menu a {
-    text-decoration: none;
-    transition: color 0.2s ease, background 0.2s ease;
-}
-
-.panel-features-menu a:hover {
-    color: #2f2f35;
-    background: rgba(0, 0, 0, 0.04);
-}
-
-.panel-features-placeholder {
-    visibility: hidden;
+.panel-logo__img {
+    display: block;
+    height: 1.1rem;
+    width: auto;
+    max-width: min(34vw, 6.5rem);
+    object-fit: contain;
 }
 
 .panel-cta {
@@ -146,7 +36,6 @@
     background: var(--panel-accent);
     color: #fff;
     text-decoration: none;
-    border: none;
     border-radius: 6px;
     transition: background 0.25s ease;
 }
@@ -155,42 +44,7 @@
     background: var(--panel-accent-hover);
 }
 
-@media (max-width: 780px) {
-    .panel {
-        flex-wrap: wrap;
-        row-gap: 0.35rem;
-    }
-
-    .panel-actions {
-        width: 100%;
-        margin-left: 0;
-        justify-content: flex-end;
-    }
-
-    .panel-nav {
-        gap: 0.2rem;
-    }
-
-    .panel-nav a {
-        padding: 0.3rem 0.45rem;
-        font-size: 0.78rem;
-    }
-
-    .panel-features-menu {
-        justify-content: center;
-        padding: 1.1rem 0.6rem 1.2rem;
-    }
-
-    .panel-features-inner {
-        grid-template-columns: repeat(2, minmax(120px, auto));
-        gap: 0.2rem 0.8rem;
-    }
-
-    .panel-features-col + .panel-features-col {
-        border-left: none;
-        padding-left: 0;
-    }
-
+@media (max-width: 480px) {
     .panel-cta {
         font-size: 0.8rem;
         padding: 0.3rem 0.65rem;

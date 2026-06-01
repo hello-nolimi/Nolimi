@@ -3,6 +3,30 @@
 var Plans2DCartouche = (function () {
     var COLS = 4;
     var FULL_ROWS = 5;
+    var BRAND_LOGO_SRC = '../assets/brand/nolimi-logo-cartouche.png';
+    var brandLogo = null;
+    var brandLogoLoading = false;
+
+    function request2DRedraw() {
+        if (typeof draw2D === 'function') draw2D();
+    }
+
+    function loadBrandLogo() {
+        if (brandLogo && brandLogo.complete && brandLogo.naturalWidth) return;
+        if (brandLogoLoading) return;
+        brandLogoLoading = true;
+        brandLogo = new Image();
+        brandLogo.onload = function () {
+            brandLogoLoading = false;
+            request2DRedraw();
+        };
+        brandLogo.onerror = function () {
+            brandLogoLoading = false;
+        };
+        brandLogo.src = BRAND_LOGO_SRC;
+    }
+
+    loadBrandLogo();
 
     function getStyle(style) {
         var base = (typeof Plans2DRules !== 'undefined' && Plans2DRules.DRAW_STYLE && Plans2DRules.DRAW_STYLE.cartouche)
@@ -174,11 +198,34 @@ var Plans2DCartouche = (function () {
 
     function drawBrandName(ctx, box, style) {
         var rect = cellRect(box, 3, 1, 2);
-        ctx.fillStyle = '#000000';
-        ctx.font = style.fontBrand;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(toUpper('NOLIMI'), rect.x + rect.w / 2, rect.y + rect.h / 2);
+        if (!brandLogo || !brandLogo.complete || !brandLogo.naturalWidth) {
+            loadBrandLogo();
+            ctx.fillStyle = '#000000';
+            ctx.font = style.fontBrand;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(toUpper('NOLIMI'), rect.x + rect.w / 2, rect.y + rect.h / 2);
+            return;
+        }
+
+        var pad = 1.2;
+        var brandScale = 0.52;
+        var maxW = (rect.w - pad * 2) * brandScale;
+        var maxH = (rect.h - pad * 2) * brandScale;
+        var aspect = brandLogo.naturalWidth / brandLogo.naturalHeight;
+        var drawW = maxW;
+        var drawH = drawW / aspect;
+        if (drawH > maxH) {
+            drawH = maxH;
+            drawW = drawH * aspect;
+        }
+        var dx = rect.x + (rect.w - drawW) / 2;
+        var dy = rect.y + (rect.h - drawH) / 2;
+
+        ctx.save();
+        ctx.filter = 'invert(1)';
+        ctx.drawImage(brandLogo, dx, dy, drawW, drawH);
+        ctx.restore();
     }
 
     function draw(ctx, cartX, cartY, style) {

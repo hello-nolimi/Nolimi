@@ -16,8 +16,8 @@ var SectionsRules = (function () {
         { label: 'Pied', h: 0, hMin: 0, hMax: 80, L: 70, P: 70, LMin: 40, LMax: 120, step: 0.5, hStep: 0.5 },
         { label: 'Corps', h: 15, hMin: 0, hMax: 350, L: 78.5, P: 78.5, LMin: 40, LMax: 120, step: 0.5, hStep: 1 },
         { label: 'Épaule', h: 180, hMin: 0, hMax: 350, L: 78.5, P: 78.5, LMin: 20, LMax: 120, step: 0.5, hStep: 0.5 },
-        { label: 'Col', h: 225, hMin: 20, hMax: 350, L: 30, P: 30, LMin: 20, LMax: 70, step: 0.5, hStep: 1 },
-        { label: 'Bas col', h: 282, hMin: 0, hMax: 350, L: 26, P: 26, LMin: 20, LMax: 50, step: 0.1, hStep: 0.5 }
+        { label: 'Bas col', h: 225, hMin: 20, hMax: 350, L: 30, P: 30, LMin: 20, LMax: 70, step: 0.5, hStep: 1 },
+        { label: 'Col', h: 282, hMin: 0, hMax: 350, L: 26, P: 26, LMin: 20, LMax: 50, step: 0.1, hStep: 0.5 }
     ];
 
     var mainLiaisons = [
