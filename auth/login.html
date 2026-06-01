@@ -68,6 +68,31 @@
             background: var(--nolimi-surface);
         }
         .btn-retour:hover { background: var(--nolimi-bg); }
+        .login-legal {
+            margin-top: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem 1rem;
+            font-size: 0.72rem;
+            line-height: 1.5;
+            color: var(--nolimi-text-muted);
+            text-align: center;
+        }
+        .login-copyright {
+            flex-shrink: 0;
+        }
+        .login-legal__accept {
+            margin: 0;
+        }
+        .login-legal a {
+            color: var(--nolimi-accent);
+            text-decoration: none;
+        }
+        .login-legal a:hover {
+            text-decoration: underline;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../saas/config/supabase.config.js"></script>
@@ -83,6 +108,10 @@
             <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
             <div id="error-msg" class="error-msg" aria-live="polite"></div>
             <button type="submit" id="btn-submit">Connexion</button>
+            <p class="login-legal">
+                <span class="login-copyright">© 2026 Nolimi. Tous droits réservés.</span>
+                <span class="login-legal__accept">En vous connectant, vous acceptez nos <a href="../website/mentions-legales.html">Mentions Légales &amp; CGU</a>.</span>
+            </p>
         </form>
     </main>
     <script>

@@ -18,6 +18,7 @@ body {
 
 :root {
     --inspector-content-top-gap: 18px;
+    --saas-viewport-bottom-gap: 1.85rem;
 }
 
 /* ==========================================
@@ -100,6 +101,7 @@ body {
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    position: relative;
 }
 
 /* Panneau Gauche : Sidebar (icônes) + Inspector (contenu) */
@@ -357,8 +359,9 @@ body {
 #viewport,
 #viewport.workspace-content { 
     display: flex; 
-    flex-grow: 1; 
-    margin: 0 15px 15px 0; 
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 15px 0 0; 
     overflow: hidden; 
     position: relative;
 }
@@ -581,7 +584,7 @@ input[type="text"], .input-select, .input-select-disabled {
     position: absolute;        /* fixe en bas de l'inspector */
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: calc(var(--saas-viewport-bottom-gap) - 6px); /* aligné sur le bas de la fenêtre 3D/2D */
     padding: 10px 0 12px 0;
     z-index: 5;
     display: flex;
@@ -624,4 +627,45 @@ input[type="text"], .input-select, .input-select-disabled {
     white-space: pre-line;
     text-align: left;
     pointer-events: none;
+}
+
+.saas-legal-footer-spacer {
+    flex-shrink: 0;
+    height: var(--saas-viewport-bottom-gap);
+    margin: 0 15px 0 0;
+}
+
+.saas-legal-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 4px 12px 10px;
+    text-align: center;
+    z-index: 30;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem 1.25rem;
+}
+
+.saas-legal-footer__copyright {
+    font-size: 0.72rem;
+    color: #6b6b73;
+    letter-spacing: 0.01em;
+    margin: 0;
+}
+
+.saas-legal-footer__link {
+    font-size: 0.72rem;
+    color: #6b6b73;
+    text-decoration: none;
+    letter-spacing: 0.01em;
+}
+
+.saas-legal-footer__link:hover {
+    color: #5cb3ff;
+    text-decoration: underline;
 }
