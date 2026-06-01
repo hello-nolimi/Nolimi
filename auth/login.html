@@ -52,8 +52,12 @@
         .error-msg {
             color: var(--nolimi-danger);
             font-size: 0.9rem;
-            margin-top: 0.25rem;
+            margin: 0;
+            min-height: 0;
+        }
+        .error-msg:not(:empty) {
             min-height: 1.4em;
+            margin-bottom: 0.25rem;
         }
         .btn-retour {
             position: absolute;
@@ -69,7 +73,7 @@
         }
         .btn-retour:hover { background: var(--nolimi-bg); }
         .login-legal {
-            margin-top: 0.85rem;
+            margin: -0.35rem 0 0.5rem;
             font-size: 0.72rem;
             line-height: 1.5;
             color: var(--nolimi-text-muted);
@@ -95,12 +99,12 @@
             <input type="email" id="email" name="email" placeholder="votre@email.com" required autocomplete="email">
             <label for="password">Mot de passe</label>
             <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
-            <div id="error-msg" class="error-msg" aria-live="polite"></div>
-            <button type="submit" id="btn-submit">Connexion</button>
             <p class="login-legal">
                 En vous connectant, vous acceptez nos
                 <a href="../website/mentions-legales.html">Mentions Légales &amp; CGU</a>.
             </p>
+            <div id="error-msg" class="error-msg" aria-live="polite"></div>
+            <button type="submit" id="btn-submit">Connexion</button>
         </form>
     </main>
     <script>
