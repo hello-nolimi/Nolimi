@@ -319,15 +319,25 @@ var BottleView3D = (function () {
             if (mat.userData.piqureBoostApplied) return;
             mat.userData.piqureBoostApplied = true;
             // Aide à distinguer la piqûre interne derrière la peau externe.
-            mat.opacity = Math.max(0.55, (mat.opacity !== undefined ? mat.opacity : 1));
+            mat.opacity = Math.max(0.62, (mat.opacity !== undefined ? mat.opacity : 1));
             mat.depthWrite = false;
             mat.polygonOffset = true;
             mat.polygonOffsetFactor = -0.5;
             mat.polygonOffsetUnits = -0.5;
-            if (mat.color && mat.color.offsetHSL) mat.color.offsetHSL(0, -0.05, -0.04);
+            if (mat.color && mat.color.offsetHSL) mat.color.offsetHSL(0, 0.03, 0.02);
             mat.needsUpdate = true;
             node.renderOrder = 6;
         });
+    }
+
+    function getInnerShellMaterial() {
+        var glassMode = (typeof BottleMaterials !== 'undefined' && BottleMaterials.getRenderMaterialMode)
+            ? BottleMaterials.getRenderMaterialMode()
+            : 'base';
+        if (glassMode === 'glass' && typeof BottleMaterials !== 'undefined' && BottleMaterials.getInnerGlassMaterial) {
+            return BottleMaterials.getInnerGlassMaterial(BottleMaterials.DEFAULT_GLASS_COLOR);
+        }
+        return new THREE.MeshPhongMaterial({ color: 0x6f8ead, side: THREE.BackSide, shininess: 20 });
     }
 
     function addRuledSurfaceIndicesClosedU(indices, nu, nv, rowStride) {
@@ -812,7 +822,7 @@ var BottleView3D = (function () {
         var thicknessNow = (typeof InterieurMath !== 'undefined' && InterieurMath.getThicknessMm)
             ? InterieurMath.getThicknessMm()
             : 3.5;
-        var piqureInnerMat = new THREE.MeshPhongMaterial({ color: 0x6f8ead, side: THREE.BackSide, shininess: 20 });
+        var piqureInnerMat = getInnerShellMaterial();
         var s1Inner = InterieurMath.insetSection(s1, thicknessNow);
         s1Inner.H = s1.H + thicknessNow;
         var piqSectionsInner = [];
@@ -844,7 +854,7 @@ var BottleView3D = (function () {
                 piqStripInner.userData.isInterior = true;
                 if (piqStripInner.material) {
                     piqStripInner.material.side = THREE.BackSide;
-                    piqStripInner.material.shininess = 20;
+                    if (piqStripInner.material.shininess !== undefined) piqStripInner.material.shininess = 20;
                 }
                 sectionRingGroup.add(piqStripInner);
             }
@@ -899,7 +909,7 @@ var BottleView3D = (function () {
             feuilleColBague.userData.isPiqure = false;
             enableMeshShadows(feuilleColBague);
             sectionRingGroup.add(feuilleColBague);
-            var bagueInnerMat = new THREE.MeshPhongMaterial({ color: 0x6f8ead, side: THREE.BackSide, shininess: 20 });
+            var bagueInnerMat = getInnerShellMaterial();
             var feuilleColBagueInner = InterieurMath.createInsetMeshFromMesh(feuilleColBague, thicknessNow, bagueInnerMat);
             if (feuilleColBagueInner) {
                 feuilleColBagueInner.userData.isPiqure = false;
@@ -931,7 +941,7 @@ var BottleView3D = (function () {
                 bagueStripInner.userData.isInterior = true;
                 if (bagueStripInner.material) {
                     bagueStripInner.material.side = THREE.BackSide;
-                    bagueStripInner.material.shininess = 20;
+                    if (bagueStripInner.material.shininess !== undefined) bagueStripInner.material.shininess = 20;
                 }
                 sectionRingGroup.add(bagueStripInner);
             }

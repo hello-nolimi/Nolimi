@@ -549,19 +549,18 @@ var SceneSetup3D = (function () {
     }
 
     /**
-     * Tonemapping / couleurs : uniquement en Scène 0 avec mode rendu activé.
-     * Sinon retour au pipeline par défaut (vue normale).
+     * Tonemapping / couleurs : actif dès que le mode rendu est activé
+     * (même sans scene0) pour mieux lire le verre et ses reflets.
      */
     function syncRendererPipeline() {
         if (!renderer || typeof THREE === 'undefined') return;
         var modeToggle = (typeof document !== 'undefined') ? document.getElementById('render-mode-toggle') : null;
         var renderOn = modeToggle && modeToggle.checked;
-        var scene0Render = renderOn && ACTIVE_BG_SCENE === 'scene0';
-        if (scene0Render) {
+        if (renderOn) {
             if (renderer.physicallyCorrectLights !== undefined) renderer.physicallyCorrectLights = true;
             if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
             if (renderer.toneMapping !== undefined) renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            if (renderer.toneMappingExposure !== undefined) renderer.toneMappingExposure = 1.0;
+            if (renderer.toneMappingExposure !== undefined) renderer.toneMappingExposure = 1.05;
         } else {
             if (renderer.physicallyCorrectLights !== undefined) renderer.physicallyCorrectLights = false;
             if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.LinearEncoding;

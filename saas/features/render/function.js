@@ -108,7 +108,7 @@ var RenderFeature = (function () {
         var sceneBase = document.getElementById(IDS.sceneBase || 'render-scene-base');
         var scene1 = document.getElementById(IDS.scene1 || 'render-scene-1');
         var scene2 = document.getElementById(IDS.scene2 || 'render-scene-2');
-        if (!state || !modeToggle || !radioGlass || !sceneBase || !scene1 || !scene2) return;
+        if (!state || !modeToggle || !radioGlass || !sceneBase) return;
 
         function clampToInputRange(inputEl, value, fallback) {
             if (!inputEl) return (isNaN(value) ? fallback : value);
@@ -174,23 +174,40 @@ var RenderFeature = (function () {
 
         function syncSceneAvailability() {
             var enabled = !!modeToggle.checked;
-            scene1.disabled = !enabled;
-            scene2.disabled = !enabled;
+            if (scene1) scene1.disabled = !enabled;
+            if (scene2) scene2.disabled = !enabled;
             if (materialCard) materialCard.classList.toggle('is-disabled', !enabled);
             if (sceneCard) sceneCard.classList.toggle('is-disabled', !enabled);
             if (labelCard) {
                 labelCard.classList.toggle('is-disabled', !enabled);
             }
+            // En mode rendu, on repart à zéro à l'activation puis on autorise de nouvelles étiquettes.
             state.enabled = enabled;
+            if (enabled && state.labels && state.labels.length) {
+                for (var li = 0; li < state.labels.length; li++) {
+                    var lab = state.labels[li];
+                    if (lab && lab.texture && lab.texture.dispose) lab.texture.dispose();
+                }
+                state.labels = [];
+                state.activeId = null;
+                renderLabelList();
+                syncLabelInputsFromActive();
+            }
             if (!enabled) sceneBase.checked = true;
             if (typeof updateBouteille === 'function') updateBouteille();
         }
 
         function applySceneFromChecks() {
+            // Mode rendu simplifié: aucun décor de scène, bouteille seule.
+            if (modeToggle.checked) {
+                applyBackgroundScene(RenderRules.SCENE_NONE || 'none');
+                if (typeof updateBouteille === 'function') updateBouteille();
+                return;
+            }
             var sceneName = RenderMath.sceneFromInputs(
                 !!modeToggle.checked,
-                !!scene1.checked,
-                !!scene2.checked
+                !!(scene1 && scene1.checked),
+                !!(scene2 && scene2.checked)
             );
             applyBackgroundScene(sceneName);
             if (typeof updateBouteille === 'function') updateBouteille();
@@ -219,11 +236,11 @@ var RenderFeature = (function () {
             sceneBase.dataset.bound = '1';
             sceneBase.addEventListener('change', function () { if (sceneBase.checked) applySceneFromChecks(); });
         }
-        if (!scene1.dataset.bound) {
+        if (scene1 && !scene1.dataset.bound) {
             scene1.dataset.bound = '1';
             scene1.addEventListener('change', applySceneFromChecks);
         }
-        if (!scene2.dataset.bound) {
+        if (scene2 && !scene2.dataset.bound) {
             scene2.dataset.bound = '1';
             scene2.addEventListener('change', applySceneFromChecks);
         }
@@ -245,6 +262,7 @@ var RenderFeature = (function () {
                         label.texture.needsUpdate = true;
                         state.labels.push(label);
                         state.activeId = newId;
+                        state.enabled = !!modeToggle.checked;
                         renderLabelList();
                         syncLabelInputsFromActive();
                         requestLabelRefresh(true);
