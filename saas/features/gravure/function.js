@@ -266,6 +266,7 @@ var Gravure3D = (function () {
         }
         engravingGroup = buildEngravingsGroup(extendSurfaceWithBague(surfaceInput));
         if (engravingGroup) {
+            engravingGroup.userData.isBottleExportRoot = true;
             scene.add(engravingGroup);
             if (typeof BottleView3D !== 'undefined' && BottleView3D.applyViewOpacity) {
                 BottleView3D.applyViewOpacity(engravingGroup);

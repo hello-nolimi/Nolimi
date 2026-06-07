@@ -66,6 +66,7 @@ var BottleView3D = (function () {
             sectionRingGroup = null;
         }
         sectionRingGroup = new THREE.Group();
+        sectionRingGroup.userData.isBottleExportRoot = true;
     }
 
     function buildBottleBodySignature(sectionsData) {
@@ -648,6 +649,7 @@ var BottleView3D = (function () {
         mesh.position.set(0, 0, 0);
         mesh.rotation.set(0, 0, 0);
         mesh.userData.isPiqure = false;
+        mesh.userData.isLabel = true;
         mesh.renderOrder = 10;
         return mesh;
     }

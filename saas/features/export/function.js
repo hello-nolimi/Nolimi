@@ -40,10 +40,21 @@ var ExportFeature = (function () {
             return;
         }
 
+        function isBottleExportMesh(obj) {
+            if (!obj.isMesh || !obj.geometry || !obj.geometry.index) return false;
+            if (obj.userData && (obj.userData.isInterior || obj.userData.isLabel)) return false;
+            var node = obj;
+            while (node) {
+                if (node.userData && node.userData.isBottleExportRoot) return true;
+                node = node.parent;
+            }
+            return false;
+        }
+
         try {
             var tempGroup = new THREE.Group();
             targetScene.traverse(function (obj) {
-                if (!obj.isMesh || !obj.geometry || !obj.geometry.index) return;
+                if (!isBottleExportMesh(obj)) return;
                 var geo = obj.geometry;
                 var idx = geo.index.array;
                 var newIdx = new idx.constructor(idx.length);
@@ -60,10 +71,13 @@ var ExportFeature = (function () {
                 tempGroup.add(meshFlipped);
             });
 
-            targetScene.add(tempGroup);
+            if (!tempGroup.children.length) {
+                alert("Aucune géométrie de bouteille n'a pu être trouvée pour l'export.");
+                return;
+            }
+
             var exporter = new THREE.STLExporter();
-            var stlData = exporter.parse(targetScene, { binary: true });
-            targetScene.remove(tempGroup);
+            var stlData = exporter.parse(tempGroup, { binary: true });
 
             var blob = new Blob([stlData], { type: 'application/octet-stream' });
             var baseName = ExportMath.safeFileName(refs.projectTitle && refs.projectTitle.value, RULES.DEFAULTS.file3D);
