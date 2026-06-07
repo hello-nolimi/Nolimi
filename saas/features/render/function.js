@@ -88,6 +88,29 @@ var RenderFeature = (function () {
         }
     }
 
+    function syncSceneAvailabilityFromDom() {
+        var modeToggle = document.getElementById(IDS.modeToggle || 'render-mode-toggle');
+        var radioGlass = document.getElementById(IDS.materialGlass || 'render-material-glass');
+        var materialCard = radioGlass ? radioGlass.closest('.setting-card') : null;
+        var sceneCard = document.getElementById(IDS.sceneCard || 'render-scene-card');
+        var labelCard = document.getElementById(IDS.labelCard || 'render-label-card');
+        var scene1 = document.getElementById(IDS.scene1 || 'render-scene-1');
+        var scene2 = document.getElementById(IDS.scene2 || 'render-scene-2');
+        if (!modeToggle) return;
+        var enabled = !!modeToggle.checked;
+        if (scene1) scene1.disabled = !enabled;
+        if (scene2) scene2.disabled = !enabled;
+        if (materialCard) materialCard.classList.toggle('is-disabled', !enabled);
+        if (sceneCard) sceneCard.classList.toggle('is-disabled', !enabled);
+        if (labelCard) labelCard.classList.toggle('is-disabled', !enabled);
+    }
+
+    function scheduleWorkspaceSave() {
+        if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.scheduleSave) {
+            WorkspaceAutosave.scheduleSave();
+        }
+    }
+
     function initModeRenduControls() {
         var state = ensureLabelState();
         var modeToggle = document.getElementById(IDS.modeToggle || 'render-mode-toggle');
@@ -266,6 +289,7 @@ var RenderFeature = (function () {
                         renderLabelList();
                         syncLabelInputsFromActive();
                         requestLabelRefresh(true);
+                        scheduleWorkspaceSave();
                         if (labelInput) labelInput.value = '';
                     });
                 };
@@ -411,25 +435,181 @@ var RenderFeature = (function () {
                     renderLabelList();
                     syncLabelInputsFromActive();
                     requestLabelRefresh(true);
+                    scheduleWorkspaceSave();
                 }
             });
         }
 
-        // Etat initial
-        radioGlass.checked = true;
-        modeToggle.checked = false;
-        sceneBase.checked = true;
+        // Synchroniser l'UI avec l'état courant (valeurs HTML ou restauration projet).
         if (!state.labels) state.labels = [];
         renderLabelList();
         syncLabelInputsFromActive();
         refreshLabelAccordionHeight();
-        applyMaterialMode(RULES.MODE_BASE || 'base');
+        applyMaterialFromMode();
         syncSceneAvailability();
         applySceneFromChecks();
     }
 
+    function renderLabelListUi() {
+        var state = ensureLabelState();
+        var labelList = document.getElementById('render-label-list');
+        if (!state || !labelList) return;
+        var html = '';
+        for (var i = 0; i < state.labels.length; i++) {
+            var l = state.labels[i];
+            var isActive = l.id === state.activeId;
+            html += '<div class="label-row" style="align-items:center; margin-bottom:4px; background:' + (isActive ? 'rgba(0,120,212,0.12)' : 'transparent') + '; border-radius:4px; padding:2px 4px;">'
+                + '<button type="button" class="btn-render-label-select" data-label-id="' + l.id + '" style="background:none;border:none;cursor:pointer;text-align:left;padding:0;flex:1;">Etiquette ' + (i + 1) + '</button>'
+                + '<button type="button" class="btn-render-label-delete" data-label-id="' + l.id + '" title="Supprimer" style="background:none;border:none;cursor:pointer;color:#a33;font-size:14px;line-height:1;">×</button>'
+                + '</div>';
+        }
+        labelList.innerHTML = html;
+    }
+
+    function syncActiveLabelInputsToDom() {
+        var state = ensureLabelState();
+        var active = getActiveLabel(state);
+        var labelHeight = document.getElementById(IDS.labelHeight || 'render-label-height');
+        var labelHeightNumber = document.getElementById('render-label-height-number');
+        var labelSize = document.getElementById(IDS.labelSize || 'render-label-size');
+        var labelSizeNumber = document.getElementById('render-label-size-number');
+        var labelRotation = document.getElementById(IDS.labelRotation || 'render-label-rotation');
+        var labelRotationNumber = document.getElementById('render-label-rotation-number');
+        var labelFlipX = document.getElementById('render-label-flip-x');
+        var labelFlipY = document.getElementById('render-label-flip-y');
+        if (!active) return;
+        if (labelHeight) labelHeight.value = String(active.height || 0);
+        if (labelSize) labelSize.value = String(active.size || 100);
+        if (labelRotation) labelRotation.value = String(active.rotation || 0);
+        if (labelHeightNumber) labelHeightNumber.value = String(active.height || 0);
+        if (labelSizeNumber) labelSizeNumber.value = String(active.size || 100);
+        if (labelRotationNumber) labelRotationNumber.value = String(active.rotation || 0);
+        if (labelFlipX) labelFlipX.checked = !!active.flipX;
+        if (labelFlipY) labelFlipY.checked = !!active.flipY;
+    }
+
+    function applyControlsFromDom() {
+        var modeToggle = document.getElementById(IDS.modeToggle || 'render-mode-toggle');
+        var sceneBase = document.getElementById(IDS.sceneBase || 'render-scene-base');
+        var scene1 = document.getElementById(IDS.scene1 || 'render-scene-1');
+        var scene2 = document.getElementById(IDS.scene2 || 'render-scene-2');
+        var state = ensureLabelState();
+        if (!modeToggle || !state) return;
+        state.enabled = !!modeToggle.checked;
+        applyMaterialMode(RenderMath.materialModeFromToggle(!!modeToggle.checked));
+        if (modeToggle.checked) {
+            applyBackgroundScene(RULES.SCENE_NONE || 'none');
+        } else {
+            var sceneName = RenderMath.sceneFromInputs(
+                !!modeToggle.checked,
+                !!(scene1 && scene1.checked),
+                !!(scene2 && scene2.checked)
+            );
+            applyBackgroundScene(sceneName);
+        }
+        renderLabelListUi();
+        syncActiveLabelInputsToDom();
+        syncSceneAvailabilityFromDom();
+    }
+
+    function collectSaveState() {
+        var state = ensureLabelState();
+        if (!state) return { enabled: false, labels: [], activeId: null, nextId: 1 };
+        var items = [];
+        for (var i = 0; i < state.labels.length; i++) {
+            var l = state.labels[i];
+            items.push({
+                id: l.id,
+                imageDataUrl: l.imageUrl || null,
+                height: l.height,
+                size: l.size,
+                rotation: l.rotation,
+                flipX: !!l.flipX,
+                flipY: !!l.flipY
+            });
+        }
+        return {
+            enabled: !!state.enabled,
+            activeId: state.activeId,
+            nextId: state.nextId || 1,
+            labels: items
+        };
+    }
+
+    function disposeLabelTextures(state) {
+        if (!state || !state.labels) return;
+        for (var i = 0; i < state.labels.length; i++) {
+            var lab = state.labels[i];
+            if (lab && lab.texture && lab.texture.dispose) lab.texture.dispose();
+        }
+    }
+
+    function restoreSaveState(data, done) {
+        var callback = typeof done === 'function' ? done : function () { };
+        var state = ensureLabelState();
+        if (!state) {
+            callback();
+            return;
+        }
+        disposeLabelTextures(state);
+        state.labels = [];
+        state.activeId = null;
+        if (!data || !Array.isArray(data.labels) || !data.labels.length) {
+            state.enabled = !!(data && data.enabled);
+            state.nextId = (data && data.nextId) ? data.nextId : 1;
+            applyControlsFromDom();
+            callback();
+            return;
+        }
+        state.enabled = !!data.enabled;
+        state.nextId = data.nextId || 1;
+        state.activeId = data.activeId || null;
+        state.labels = new Array(data.labels.length);
+        var pending = 0;
+        var finished = false;
+        function finish() {
+            if (finished) return;
+            finished = true;
+            state.labels = state.labels.filter(function (entry) { return !!entry; });
+            if (!state.activeId && state.labels.length) state.activeId = state.labels[0].id;
+            applyControlsFromDom();
+            callback();
+        }
+        function markDone() {
+            pending -= 1;
+            if (pending <= 0) finish();
+        }
+        for (var i = 0; i < data.labels.length; i++) {
+            (function (entry, index) {
+                var label = createLabel(entry.id);
+                label.height = entry.height;
+                label.size = entry.size;
+                label.rotation = entry.rotation;
+                label.flipX = !!entry.flipX;
+                label.flipY = !!entry.flipY;
+                if (!entry.imageDataUrl || typeof THREE === 'undefined') {
+                    state.labels[index] = label;
+                    return;
+                }
+                pending += 1;
+                var loader = new THREE.TextureLoader();
+                loader.load(entry.imageDataUrl, function (tx) {
+                    label.texture = tx;
+                    label.imageUrl = entry.imageDataUrl;
+                    label.texture.needsUpdate = true;
+                    state.labels[index] = label;
+                    markDone();
+                }, undefined, markDone);
+            })(data.labels[i], i);
+        }
+        if (pending === 0) finish();
+    }
+
     return {
-        initModeRenduControls: initModeRenduControls
+        initModeRenduControls: initModeRenduControls,
+        collectSaveState: collectSaveState,
+        restoreSaveState: restoreSaveState,
+        applyControlsFromDom: applyControlsFromDom
     };
 })();
 

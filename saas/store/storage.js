@@ -22,7 +22,14 @@ var WorkspaceAutosave = (function () {
         return projectData;
     }
 
+    function syncSectionsStateFromDom() {
+        if (typeof SectionsEvents !== 'undefined' && SectionsEvents.syncAllFromDom) {
+            SectionsEvents.syncAllFromDom();
+        }
+    }
+
     function collectPayload() {
+        syncSectionsStateFromDom();
         var payload = {
             version: 1,
             savedAt: Date.now(),
@@ -37,7 +44,98 @@ var WorkspaceAutosave = (function () {
         if (typeof window !== 'undefined' && window.displayOptions) {
             payload.displayOptions = window.displayOptions;
         }
+        if (typeof GravureEvents !== 'undefined' && GravureEvents.collectSaveState) {
+            payload.gravureState = GravureEvents.collectSaveState();
+        }
+        if (typeof RenderFeature !== 'undefined' && RenderFeature.collectSaveState) {
+            payload.renderLabelState = RenderFeature.collectSaveState();
+        }
+        if (typeof InterieurFeature !== 'undefined' && InterieurFeature.getGlassThicknessMm) {
+            payload.interiorState = {
+                glassThicknessMm: InterieurFeature.getGlassThicknessMm()
+            };
+        } else if (typeof window !== 'undefined' && window.interiorState) {
+            payload.interiorState = {
+                glassThicknessMm: window.interiorState.glassThicknessMm
+            };
+        }
         return payload;
+    }
+
+    function normalizePayload(data) {
+        if (data && data.version && data.inputs) return data;
+        return { version: 0, inputs: data || {} };
+    }
+
+    function applyInputValues(inputs) {
+        if (!inputs) return;
+        for (var id in inputs) {
+            if (!Object.prototype.hasOwnProperty.call(inputs, id)) continue;
+            var el = document.getElementById(id);
+            if (!el) continue;
+            if (el.type === 'checkbox') el.checked = !!inputs[id];
+            else el.value = inputs[id];
+        }
+    }
+
+    function applyProjectPayload(payload, done) {
+        if (!payload) {
+            if (typeof done === 'function') done();
+            return;
+        }
+        var normalized = normalizePayload(payload);
+        isApplyingRestore = true;
+        try {
+            if (normalized.sectionsState && typeof SectionsState !== 'undefined' && SectionsState.setState) {
+                SectionsState.setState(normalized.sectionsState);
+            }
+            if (typeof UIInspector !== 'undefined' && UIInspector.renderSections) {
+                UIInspector.renderSections();
+            }
+            if (normalized.displayOptions && typeof window !== 'undefined') {
+                window.displayOptions = normalized.displayOptions;
+            }
+            if (normalized.interiorState && typeof window !== 'undefined') {
+                window.interiorState = {
+                    glassThicknessMm: normalized.interiorState.glassThicknessMm
+                };
+                if (typeof InterieurFeature !== 'undefined' && InterieurFeature.render) {
+                    InterieurFeature.render();
+                }
+            }
+            applyInputValues(normalized.inputs);
+            if (normalized.navigationState && typeof NavigationState !== 'undefined' && NavigationState.patch) {
+                NavigationState.patch(normalized.navigationState);
+            }
+            if (typeof setupListeners === 'function') setupListeners();
+            if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) UIControls.syncAllRangeSliders();
+            if (typeof SceneSetup3D !== 'undefined' && SceneSetup3D.applyDisplayOptions) SceneSetup3D.applyDisplayOptions();
+            if (typeof Validator !== 'undefined' && Validator.applyAllUserConstraints) Validator.applyAllUserConstraints();
+        } finally {
+            isApplyingRestore = false;
+        }
+
+        function afterRenderRestore() {
+            if (typeof updateBouteille === 'function') updateBouteille();
+            if (typeof done === 'function') done();
+        }
+
+        function afterGravureRestore() {
+            if (typeof RenderFeature !== 'undefined' && RenderFeature.restoreSaveState) {
+                RenderFeature.restoreSaveState(normalized.renderLabelState, afterRenderRestore);
+            } else if (typeof RenderFeature !== 'undefined' && RenderFeature.applyControlsFromDom) {
+                RenderFeature.applyControlsFromDom();
+                afterRenderRestore();
+            } else {
+                afterRenderRestore();
+            }
+        }
+
+        if (typeof GravureEvents !== 'undefined' && GravureEvents.restoreSaveState) {
+            GravureEvents.restoreSaveState(normalized.gravureState || { items: [] }, afterGravureRestore);
+        } else {
+            afterGravureRestore();
+        }
     }
 
     function saveNow() {
@@ -76,35 +174,10 @@ var WorkspaceAutosave = (function () {
         }
     }
 
-    function applyInputValues(inputs) {
-        if (!inputs) return;
-        for (var id in inputs) {
-            if (!Object.prototype.hasOwnProperty.call(inputs, id)) continue;
-            var el = document.getElementById(id);
-            if (!el) continue;
-            if (el.type === 'checkbox') el.checked = !!inputs[id];
-            else el.value = inputs[id];
-        }
-    }
-
     function applyRestoredValues() {
         if (!pendingRestore) return;
-        isApplyingRestore = true;
-        try {
-            applyInputValues(pendingRestore.inputs);
-            if (pendingRestore.navigationState && typeof NavigationState !== 'undefined' && NavigationState.patch) {
-                NavigationState.patch(pendingRestore.navigationState);
-            }
-            if (pendingRestore.displayOptions && typeof window !== 'undefined') {
-                window.displayOptions = pendingRestore.displayOptions;
-            }
-            if (typeof UIControls !== 'undefined' && UIControls.syncAllRangeSliders) UIControls.syncAllRangeSliders();
-            if (typeof SceneSetup3D !== 'undefined' && SceneSetup3D.applyDisplayOptions) SceneSetup3D.applyDisplayOptions();
-            if (typeof Validator !== 'undefined' && Validator.applyAllUserConstraints) Validator.applyAllUserConstraints();
-        } finally {
-            pendingRestore = null;
-            isApplyingRestore = false;
-        }
+        applyProjectPayload(pendingRestore);
+        pendingRestore = null;
     }
 
     function bindListeners() {
@@ -126,6 +199,8 @@ var WorkspaceAutosave = (function () {
     return {
         prepareRestoreFromStorage: prepareRestoreFromStorage,
         applyRestoredValues: applyRestoredValues,
+        applyProjectPayload: applyProjectPayload,
+        collectPayload: collectPayload,
         scheduleSave: scheduleSave,
         saveNow: saveNow,
         clear: clear,
@@ -150,19 +225,19 @@ function hideFichierDropdown() {
 function loadProjectData(jsonString) {
     try {
         var savedData = JSON.parse(jsonString);
-        for (var id in savedData) {
-            var el = document.getElementById(id);
-            if (el) {
-                if (el.type === 'checkbox') el.checked = savedData[id];
-                else el.value = savedData[id];
-            }
-        }
         if (pageMenuEl) pageMenuEl.classList.add('hidden');
         if (pageBouteilleEl) pageBouteilleEl.classList.remove('hidden');
         setTimeout(function () {
             if (typeof initLogiciel === 'function' && !isLogicielInit) {
                 initLogiciel();
                 isLogicielInit = true;
+            }
+            if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.applyProjectPayload) {
+                WorkspaceAutosave.applyProjectPayload(savedData, function () {
+                    if (typeof draw2D === 'function' && viewport2DEl && !viewport2DEl.classList.contains('hidden')) draw2D();
+                    if (typeof WorkspaceAutosave !== 'undefined') WorkspaceAutosave.saveNow();
+                });
+                return;
             }
             if (typeof updateBouteille === 'function') updateBouteille();
             if (typeof draw2D === 'function' && viewport2DEl && !viewport2DEl.classList.contains('hidden')) draw2D();
@@ -192,34 +267,15 @@ async function handleOpenProject() {
     }
 }
 
-if (btnOpenProject) btnOpenProject.addEventListener('click', handleOpenProject);
-if (btnOpenWorkspace) btnOpenWorkspace.addEventListener('click', handleOpenProject);
-
-if (fileLoader) {
-    fileLoader.addEventListener('change', function (event) {
-        var file = event.target.files[0];
-        if (!file) return;
-        currentFileHandle = null;
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            loadProjectData(e.target.result);
-            fileLoader.value = "";
-        };
-        reader.readAsText(file);
-    });
-}
-
 async function saveProject(isSaveAs) {
     if (typeof isSaveAs === 'undefined') isSaveAs = false;
     hideFichierDropdown();
-    var inputs = document.querySelectorAll('#Panel-gauche input, #Panel-gauche select');
-    var projectData = {};
-    inputs.forEach(function (input) {
-        if (input.id) projectData[input.id] = input.type === 'checkbox' ? input.checked : input.value;
-    });
+    var payload = (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.collectPayload)
+        ? WorkspaceAutosave.collectPayload()
+        : { version: 1, inputs: {} };
     var titleInput = document.getElementById('cartouche-title');
     var fileName = (titleInput && titleInput.value.trim() !== "") ? titleInput.value.trim() : "Bouteille_SansNom";
-    var jsonString = JSON.stringify(projectData, null, 2);
+    var jsonString = JSON.stringify(payload, null, 2);
 
     if ('showSaveFilePicker' in window) {
         try {
@@ -257,6 +313,23 @@ async function saveProject(isSaveAs) {
         URL.revokeObjectURL(url);
         currentFileHandle = true;
     }
+}
+
+if (btnOpenProject) btnOpenProject.addEventListener('click', handleOpenProject);
+if (btnOpenWorkspace) btnOpenWorkspace.addEventListener('click', handleOpenProject);
+
+if (fileLoader) {
+    fileLoader.addEventListener('change', function (event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        currentFileHandle = null;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            loadProjectData(e.target.result);
+            fileLoader.value = "";
+        };
+        reader.readAsText(file);
+    });
 }
 
 if (btnSave) btnSave.addEventListener('click', function () { saveProject(false); });

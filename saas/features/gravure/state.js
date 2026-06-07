@@ -23,11 +23,23 @@ var GravureState = (function () {
         delete images[id];
     }
 
+    function reset() {
+        counter = 0;
+        images = {};
+    }
+
+    function setCounter(value) {
+        var n = parseInt(value, 10);
+        counter = isFinite(n) && n >= 0 ? n : 0;
+    }
+
     return {
         nextId: nextId,
         getCounter: getCounter,
         getImages: getImages,
         setImage: setImage,
-        removeImage: removeImage
+        removeImage: removeImage,
+        reset: reset,
+        setCounter: setCounter
     };
 })();

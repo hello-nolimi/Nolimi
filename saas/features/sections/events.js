@@ -396,8 +396,17 @@ var SectionsEvents = (function () {
         });
     }
 
+    function syncAllFromDom() {
+        var state = getState();
+        if (!state) return;
+        syncMainFromDom(state);
+        syncPiqureFromDom(state);
+        syncBagueFromDom(state);
+    }
+
     return {
         wireAddSectionButton: wireAddSectionButton,
-        wireRemoveSectionButtons: wireRemoveSectionButtons
+        wireRemoveSectionButtons: wireRemoveSectionButtons,
+        syncAllFromDom: syncAllFromDom
     };
 })();

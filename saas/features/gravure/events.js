@@ -3,6 +3,125 @@ var GravureEvents = (function () {
         if (typeof updateBouteille === 'function') updateBouteille();
     }
 
+    function scheduleProjectSave() {
+        if (typeof WorkspaceAutosave !== 'undefined' && WorkspaceAutosave.scheduleSave) {
+            WorkspaceAutosave.scheduleSave();
+        }
+    }
+
+    function imageToDataUrl(img) {
+        if (!img) return null;
+        if (img.src && img.src.indexOf('data:') === 0) return img.src;
+        try {
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            if (!w || !h) return null;
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            return canvas.toDataURL('image/png');
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function clearAllGravures() {
+        var ids = GravureRules && GravureRules.IDS ? GravureRules.IDS : {};
+        var container = document.getElementById(ids.container || 'engravings-container');
+        if (container) container.innerHTML = '';
+        if (typeof GravureState !== 'undefined' && GravureState.reset) GravureState.reset();
+        window.engravingImages = (typeof GravureState !== 'undefined' && GravureState.getImages)
+            ? GravureState.getImages()
+            : {};
+    }
+
+    function collectSaveState() {
+        var items = [];
+        var gravureItems = document.querySelectorAll('.gravure-item');
+        var images = (typeof GravureState !== 'undefined' && GravureState.getImages) ? GravureState.getImages() : {};
+        gravureItems.forEach(function (item) {
+            if (!item || !item.dataset || !item.dataset.id) return;
+            var id = item.dataset.id;
+            var parsed = GravureMath.parseItemData(item);
+            var angleInput = item.querySelector('.gravure-angle');
+            var fileNameEl = document.getElementById('gravure-filename-' + id);
+            items.push({
+                id: id,
+                fileName: fileNameEl ? fileNameEl.textContent : '',
+                imageDataUrl: imageToDataUrl(images[id]),
+                y: parsed.y,
+                angleDeg: angleInput ? parseFloat(angleInput.value) : 0,
+                width: parsed.width,
+                depth: parsed.depth,
+                flip: parsed.flip,
+                invert: parsed.invert
+            });
+        });
+        return {
+            counter: (typeof GravureState !== 'undefined' && GravureState.getCounter) ? GravureState.getCounter() : 0,
+            items: items
+        };
+    }
+
+    function createEngravingCard(id, displayIndex, data) {
+        var ids = GravureRules.IDS;
+        var container = document.getElementById(ids.container);
+        if (!container) return null;
+        var card = document.createElement('div');
+        card.className = 'setting-card setting-card--liaison gravure-item';
+        card.id = 'gravure-' + id;
+        card.dataset.id = String(id);
+        card.innerHTML = GravureBloc.buildCardHtml(id, displayIndex, data || {});
+        container.appendChild(card);
+        bindCard(card, id);
+        return card;
+    }
+
+    function restoreSaveState(state, done) {
+        clearAllGravures();
+        var callback = typeof done === 'function' ? done : function () { };
+        if (!state || !Array.isArray(state.items) || !state.items.length) {
+            callback();
+            return;
+        }
+        if (typeof GravureState !== 'undefined' && GravureState.setCounter) {
+            GravureState.setCounter(state.counter);
+        }
+        var pending = 0;
+        var finished = false;
+        function finish() {
+            if (finished) return;
+            finished = true;
+            GravureBloc.updateTitles();
+            window.engravingImages = GravureState.getImages();
+            callback();
+        }
+        function markDone() {
+            pending -= 1;
+            if (pending <= 0) finish();
+        }
+        for (var i = 0; i < state.items.length; i++) {
+            var item = state.items[i];
+            if (!item || item.id == null) continue;
+            createEngravingCard(item.id, i + 1, item);
+            if (item.imageDataUrl) {
+                pending += 1;
+                (function (entry) {
+                    var img = new Image();
+                    img.onload = function () {
+                        GravureState.setImage(entry.id, img);
+                        markDone();
+                    };
+                    img.onerror = markDone;
+                    img.src = entry.imageDataUrl;
+                })(item);
+            }
+        }
+        if (pending === 0) finish();
+    }
+
     function removeEngraving(id) {
         var card = document.getElementById('gravure-' + id);
         if (card) {
@@ -10,6 +129,7 @@ var GravureEvents = (function () {
             GravureBloc.updateTitles();
         }
         GravureState.removeImage(id);
+        scheduleProjectSave();
         triggerUpdate();
     }
 
@@ -51,7 +171,11 @@ var GravureEvents = (function () {
             var reader = new FileReader();
             reader.onload = function (event) {
                 var img = new Image();
-                img.onload = function () { GravureState.setImage(id, img); triggerUpdate(); };
+                img.onload = function () {
+                    GravureState.setImage(id, img);
+                    scheduleProjectSave();
+                    triggerUpdate();
+                };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
@@ -93,14 +217,9 @@ var GravureEvents = (function () {
         var container = document.getElementById(ids.container);
         if (!container) return;
         var id = GravureState.nextId();
-        var card = document.createElement('div');
-        card.className = 'setting-card setting-card--liaison gravure-item';
-        card.id = 'gravure-' + id;
-        card.dataset.id = id;
-        card.innerHTML = GravureBloc.buildCardHtml(id, GravureState.getCounter());
-        container.appendChild(card);
+        createEngravingCard(id, GravureState.getCounter(), null);
         GravureBloc.updateTitles();
-        bindCard(card, id);
+        scheduleProjectSave();
     }
 
     function init() {
@@ -116,6 +235,9 @@ var GravureEvents = (function () {
 
     return {
         init: init,
-        addEngravingCard: addEngravingCard
+        addEngravingCard: addEngravingCard,
+        collectSaveState: collectSaveState,
+        restoreSaveState: restoreSaveState,
+        clearAllGravures: clearAllGravures
     };
 })();
